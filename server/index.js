@@ -9,6 +9,7 @@ require('dotenv').config();
 const express = require('express');
 const {Sequelize} = require("sequelize");
 const sequelize = require("./db");
+const models = require("./models/models.js");
 
 // порт, на котором работает backend часть
 const PORT = process.env.PORT || 5000;
