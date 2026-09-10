@@ -1,6 +1,7 @@
 // файл, с которого начинается запуск backend части.
 // перед установкой зависимостей через npm необходимо скачать node.js https://nodejs.org/en/download
 // npm run dev
+
 // импорт файл с конфигами (.env)
 require('dotenv').config();
 
@@ -19,7 +20,7 @@ const app = express();
 const start = async () => {
     try {
         await sequelize.authenticate(); // вызов функции для подключения к базе данных
-        await sequelize.sync()
+        await sequelize.sync() // сверяет бд и данные с приложения
         app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
     } catch (e) {
         console.log(e)
