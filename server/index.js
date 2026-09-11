@@ -10,12 +10,18 @@ const express = require('express');
 const {Sequelize} = require("sequelize");
 const sequelize = require("./db");
 const models = require("./models/models.js");
-
+const cors = require('cors');
 // порт, на котором работает backend часть
 const PORT = process.env.PORT || 5000;
 
 // вызов функции express для запуска приложения
 const app = express();
+//app.use(cors())
+//app.use(express.json())
+
+/*app.get('/', (req, res) => {
+    res.status(200).json({message:'Работает'})
+})*/
 
 // подключение к БД
 const start = async () => {
