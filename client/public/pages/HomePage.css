@@ -1,0 +1,46 @@
+.home-page {
+    padding: 20px;
+    background-color: #A4AF51;
+    min-height: calc(100vh - 100px); /* Высота на весь экран минус высота навбара */
+}
+
+.hero-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #FEF1E0;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.hero-text {
+    flex: 1;
+    padding-right: 40px;
+}
+
+    .hero-text h1 {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    .hero-text p {
+        font-size: 1.2rem;
+        color: #555;
+        line-height: 1.6;
+    }
+
+.hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+    .hero-image img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 15px;
+    }
