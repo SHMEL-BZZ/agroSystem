@@ -9,13 +9,19 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.20.0",
     "bootstrap": "^5.3.8",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "mobx": "^7.0.3",
     "mobx-react-lite": "^5.0.3",
+    "pg": "^8.23.0",
+    "pg-hstore": "^2.3.4",
     "react": "^19.2.8",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
     "react-scripts": "5.0.1",
+    "sequelize": "^6.37.8",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -41,5 +47,13 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

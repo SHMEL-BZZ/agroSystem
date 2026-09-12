@@ -1,28 +1,32 @@
 // для запуска client части, команда npm start в папке client в терминале
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
-import GuidePage from './pages/GuidePage';
 import WateringPage from './pages/WateringPage';
 import SolutionsPage from './pages/SolutionsPage';
 import ChartsPage from './pages/ChartsPage';
-import './App.css';
+import Navbar from './components/Navbar';
 
 function App() {
     return (
         <Router>
-            <div className="App">
-                <Navbar />
-                <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/guide" element={<GuidePage />} />
-                    <Route path="/watering" element={<WateringPage />} />
-                    <Route path="/solutions" element={<SolutionsPage />} />
-                    <Route path="/charts" element={<ChartsPage />} />
-                </Routes>
-            </div>
+            <Routes>
+                {/* При запуске перенаправляем на страницу логина */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+
+                {/* Страницы авторизации и регистрации */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+
+                {/* Основные страницы с навбаром */}
+                <Route path="/home" element={<><Navbar /><HomePage /></>} />
+                <Route path="/watering" element={<><Navbar /><WateringPage /></>} />
+                <Route path="/solutions" element={<><Navbar /><SolutionsPage /></>} />
+                <Route path="/charts" element={<><Navbar /><ChartsPage /></>} />
+            </Routes>
         </Router>
     );
 }
