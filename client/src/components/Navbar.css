@@ -11,7 +11,7 @@
 
 .nav-item {
     text-decoration: none;
-    color: #333;
+    color: #472A26;
     padding: 10px 20px;
     margin: 0 5px;
     border-radius: 30px;
@@ -26,7 +26,7 @@
     /* Стиль для активной ссылки */
     .nav-item.active {
         background-color: #C8C98A;
-        color: white;
+        color: #472A26;
         font-weight: bold;
     }
 

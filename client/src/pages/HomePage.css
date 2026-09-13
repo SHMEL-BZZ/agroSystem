@@ -2,9 +2,20 @@
     padding: 20px;
     background-color: #A4AF51;
     min-height: calc(100vh - 100px); /* Высота на весь экран минус высота навбара */
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    box-sizing: border-box;
+    background-image: linear-gradient(rgba(164, 175, 81, 0.6), rgba(164, 175, 81, 0.3)), url('../../public/fon.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 
 .hero-section {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -12,7 +23,8 @@
     border-radius: 20px;
     padding: 40px;
     max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    min-height: 400px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.05);
 }
 
@@ -23,24 +35,45 @@
 
     .hero-text h1 {
         font-size: 2.5rem;
-        color: #333;
+        color: #472A26;
         margin-bottom: 20px;
     }
 
     .hero-text p {
         font-size: 1.2rem;
-        color: #555;
+        color: #6E3813;
         line-height: 1.6;
     }
 
 .hero-image {
-    flex: 1;
-    display: flex;
-    justify-content: center;
+    position: absolute;
+    top: -155px;
+    right: -90px;
+    bottom: -60px;
+    width: 720px;
+    height: auto;
+    pointer-events: none;
 }
 
     .hero-image img {
-        max-width: 100%;
+        width: 100%;
         height: auto;
-        border-radius: 15px;
+        display: block;
+    }
+
+.hero-cta {
+    margin-top: 20px;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.hero-link {
+    color: #0053D7;
+    text-decoration: underline;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+    .hero-link:hover {
+        color: #1A4B97;
     }
