@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -9,6 +9,7 @@ const RegisterPage = () => {
         password: '',
         confirmPassword: '',
     });
+    const navigate = useNavigate();
 
     //обработчик для всех полей
     const handleChange = (e) => {
@@ -22,6 +23,7 @@ const RegisterPage = () => {
             return;
         }
         console.log('Регистрация:', form);
+        navigate('/home');
     };
 
     return (

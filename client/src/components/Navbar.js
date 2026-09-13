@@ -11,7 +11,7 @@ const Navbar = () => {
     return (
         <div className="navbar-wrapper">
             <nav className="navbar">
-                <NavLink to="/" className="nav-item">Главная</NavLink>
+                <NavLink to="/home" className="nav-item">Главная</NavLink>
                 <NavLink to="/guide" className="nav-item">Руководство</NavLink>
                 <NavLink to="/watering" className="nav-item">Полив</NavLink>
                 <NavLink to="/solutions" className="nav-item">Растворы</NavLink>
