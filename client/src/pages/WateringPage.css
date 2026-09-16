@@ -1,0 +1,267 @@
+.watering-page {
+    padding: 5px 60px 40px;
+    min-height: calc(100vh - 80px);
+    box-sizing: border-box;
+    background-color: #A4AF51;
+    background-image: linear-gradient(rgba(164, 175, 81, 0.6), rgba(164, 175, 81, 0.3)), url('../../public/fon.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.watering-card {
+    background-color: #FEF1E0;
+    border-radius: 20px;
+    padding: 32px 40px 40px;
+    width: 100%;
+    max-width: 1200px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.watering-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #333;
+    margin: 0 0 24px 0;
+}
+
+.watering-date {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.watering-date__label {
+    font-size: 1rem;
+    color: #472A26;
+    font-weight: 600;
+}
+
+.watering-date__input {
+    background-color: #FEF1E0;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 1rem;
+    color: #472A26;
+    outline: none;
+}
+
+    .watering-date__input:focus {
+        border-color: #AE6E42;
+    }
+
+.watering-date__note {
+    font-size: 0.9rem;
+    color: #AE6E42;
+    font-style: italic;
+}
+
+.watering-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 28px;
+}
+
+.watering-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+    .watering-table th,
+    .watering-table td {
+        border: 1px solid #ccc;
+        padding: 14px 16px;
+        text-align: left;
+        font-size: 1rem;
+        color: #333;
+        vertical-align: middle;
+    }
+
+    .watering-table th {
+        background-color: #FEF1E0;
+        font-weight: 600;
+        color: #472A26;
+        text-align: center;
+    }
+
+.watering-table__input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: #333;
+    outline: none;
+    padding: 4px 6px;
+}
+
+    .watering-table__input:disabled {
+        color: #999;
+        cursor: not-allowed;
+    }
+
+.watering-table__add-cell {
+    text-align: center;
+    width: 60px;
+}
+
+.watering-table__add {
+    width: 34px;
+    height: 34px;
+    border: 2px solid #472A26;
+    border-radius: 50%;
+    background: transparent;
+    color: #472A26;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+    .watering-table__add:hover {
+        background-color: #472A26;
+        color: #FEF1E0;
+    }
+
+.watering-button {
+    display: block;
+    margin: 0 auto;
+    background-color: #7EA6D9;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 48px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+    .watering-button:hover {
+        background-color: #6B93C4;
+    }
+
+    .watering-button:active {
+        transform: scale(0.97);
+    }
+
+    .watering-button:disabled {
+        background-color: #bbb;
+        cursor: not-allowed;
+    }
+
+.watering-button--secondary {
+    background-color: #bbb;
+    color: #333;
+}
+
+    .watering-button--secondary:hover {
+        background-color: #aaa;
+    }
+
+.warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #F2D84B;
+    color: #472A26;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.warning-banner__icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.distribution {
+    display: flex;
+    gap: 60px;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.distribution__left {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.distribution__tank-view {
+    width: 320px;
+}
+
+.distribution__tank-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.distribution__right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.distribution__title {
+    margin: 0 0 12px 0;
+    font-size: 1.4rem;
+    color: #333;
+    font-weight: 700;
+}
+
+.distribution__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.distribution__label {
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.distribution__input {
+    width: 140px;
+    background-color: #FEF1E0;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1rem;
+    color: #472A26;
+    outline: none;
+}
+
+    .distribution__input:focus {
+        border-color: #AE6E42;
+    }
+
+.distribution__unit {
+    font-size: 1rem;
+    color: #333;
+}
+
+.distribution__actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 40px;
+}
