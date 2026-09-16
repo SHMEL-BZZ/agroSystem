@@ -14,7 +14,6 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -47,7 +46,7 @@ CREATE FUNCTION public.auto_hash_password() RETURNS trigger
 BEGIN
     -- Если пароль не начинается с '$2' (bcrypt) — хэшируем
     IF NEW.пароль NOT LIKE '$2%' THEN
-         NEW.пароль := hash_password(NEW.пароль::text);
+         NEW.пароль := hash_password(NEW.пароль);
     END IF;
     RETURN NEW;
 END;
