@@ -47,7 +47,7 @@ CREATE FUNCTION public.auto_hash_password() RETURNS trigger
 BEGIN
     -- Если пароль не начинается с '$2' (bcrypt) — хэшируем
     IF NEW.пароль NOT LIKE '$2%' THEN
-        NEW.пароль := hash_password(NEW.пароль);
+         NEW.пароль := hash_password(NEW.пароль::text);
     END IF;
     RETURN NEW;
 END;
