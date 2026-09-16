@@ -1,0 +1,56 @@
+name: Database CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  db-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: watering
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d watering"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGPASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: watering
+      DB_USERNAME: app_user
+      DB_PASSWORD: AppPassword123!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Init roles and extensions
+        run: |
+          psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE app_user LOGIN PASSWORD 'AppPassword123!';
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          SQL
+
+      - name: Apply schema
+        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/schema.sql
+
+      - name: Load test data
+        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/test-data.sql
+
+      - name: Run SQL tests
+        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/tests.sql
