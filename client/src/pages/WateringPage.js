@@ -4,6 +4,27 @@ import './WateringPage.css';
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
 
+    const [activePeriodId, setActivePeriodId] = useState(1);
+
+    // Баки с готовыми растворами (заглушка)
+    const [sourceTanks] = useState([
+        { id: 1, name: 'Бак 1' },
+        { id: 2, name: 'Бак 2' },
+        { id: 3, name: 'Бак 3' },
+    ]);
+
+    const [mixVolumes, setMixVolumes] = useState({});
+
+    const updateMixVolume = (periodId, tankId, value) => {
+        setMixVolumes((prev) => ({
+            ...prev,
+            [periodId]: {
+                ...(prev[periodId] || {}),
+                [tankId]: value,
+            },
+        }));
+    };
+
     // Дата
     const today = new Date().toISOString().slice(0, 10);
     const [selectedDate, setSelectedDate] = useState(today);
@@ -32,10 +53,9 @@ const WateringPage = () => {
         );
     };
 
-    const totalVolume = periods.reduce(
-        (sum, p) => sum + (parseFloat(p.volume) || 0),
-        0
-    );
+    // Объём выбранного периода
+    const activePeriod = periods.find((p) => p.id === activePeriodId);
+    const activePeriodVolume = parseFloat(activePeriod?.volume) || 0;
 
     // Баки
     // Пока — заглушка: три бака. В будущем придут с сервера.
@@ -45,7 +65,7 @@ const WateringPage = () => {
         console.log('Сохранено:', {
             date: selectedDate,
             periods,
-            tankVolume,
+            mixVolumes,
         });
         setStep('setup');
     };
@@ -185,8 +205,26 @@ const WateringPage = () => {
             <div className="watering-card">
                 {/* Сверху — жёлтое предупреждение с общим объёмом */}
                 <WarningBanner>
-                    Заданный объём: {totalVolume} л.
+                    Заданный объём для «{activePeriod?.name}»: {activePeriodVolume} л.
                 </WarningBanner>
+
+                {/* Выбор периода */}
+                <div className="period-selector">
+                    <span className="period-selector__label">Период:</span>
+                    {periods.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            className={
+                                'period-selector__item' +
+                                (p.id === activePeriodId ? ' period-selector__item--active' : '')
+                            }
+                            onClick={() => setActivePeriodId(p.id)}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                </div>
 
                 <div className="distribution">
                     {/* Левая колонка — бак */}
@@ -200,23 +238,27 @@ const WateringPage = () => {
                         </div>
                     </div>
 
-                    {/* Правая колонка — выбор литров из баков */}
+                    {/* Правая колонка — литры из баков с растворами */}
                     <div className="distribution__right">
                         <h2 className="distribution__title">Подготовка к поливу:</h2>
 
-                        <div className="distribution__row">
-                            <label className="distribution__label">Залить в бак</label>
-                            <input
-                                type="number"
-                                className="distribution__input"
-                                value={tankVolume}
-                                onChange={(e) => setTankVolume(e.target.value)}
-                            />
-                            <span className="distribution__unit">л.</span>
-                        </div>
+                        {sourceTanks.map((tank) => (
+                            <div className="distribution__row" key={tank.id}>
+                                <label className="distribution__label">{tank.name}</label>
+                                <input
+                                    type="number"
+                                    className="distribution__input"
+                                    value={mixVolumes[activePeriodId]?.[tank.id] || ''}
+                                    onChange={(e) =>
+                                        updateMixVolume(activePeriodId, tank.id, e.target.value)
+                                    }
+                                />
+                                <span className="distribution__unit">л.</span>
+                            </div>
+                        ))}
 
                         <p className="distribution__note">
-                            Бак наполняется ровно перед поливом.
+                            Растворы из этих баков смешиваются в баке для полива.
                         </p>
                     </div>
                 </div>
@@ -233,7 +275,7 @@ const WateringPage = () => {
                         className="watering-button"
                         onClick={handleSave}
                     >
-                        Старт
+                        Сохранить
                     </button>
                 </div>
             </div>
