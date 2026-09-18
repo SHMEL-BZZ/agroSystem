@@ -3,7 +3,8 @@ import './WateringPage.css';
 
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
-
+    // Период, который пользователь собирается удалить (null — модалка закрыта)
+    const [periodToDelete, setPeriodToDelete] = useState(null);
     const [activePeriodId, setActivePeriodId] = useState(1);
 
     // Баки с готовыми растворами (заглушка)
@@ -28,7 +29,8 @@ const WateringPage = () => {
     // Дата
     const today = new Date().toISOString().slice(0, 10);
     const [selectedDate, setSelectedDate] = useState(today);
-    const isToday = selectedDate === today;
+    const isEditable = selectedDate >= today;
+    const isPast = selectedDate < today;
 
     // Периоды полива
     // По умолчанию два периода: утро и середина дня
@@ -41,9 +43,10 @@ const WateringPage = () => {
         const newId = periods.length
             ? Math.max(...periods.map((p) => p.id)) + 1
             : 1;
+        const newName = `Период ${periods.length + 1}`;
         setPeriods([
             ...periods,
-            { id: newId, name: `Период ${newId}`, start: '', duration: '', volume: '' },
+            { id: newId, name: newName, start: '', duration: '', volume: '' },
         ]);
     };
 
@@ -77,10 +80,82 @@ const WateringPage = () => {
         </div>
     );
 
+    // Открыть модалку подтверждения
+    const askDeletePeriod = (id) => {
+        setPeriodToDelete(id);
+    };
+
+    // Отмена
+    const cancelDelete = () => {
+        setPeriodToDelete(null);
+    };
+
+    // Подтверждение удаления
+    const confirmDelete = () => {
+        setPeriods((prev) => {
+            // Убираем период с нужным id
+            const filtered = prev.filter((p) => p.id !== periodToDelete);
+
+            // Перенумеровываем оставшиеся
+            const renumbered = filtered.map((p, i) => ({
+                ...p,
+                name: `Период ${i + 1}`,
+            }));
+
+            return renumbered;
+        });
+
+        // Если удалили активный период — переключаемся на первый оставшийся
+        setActivePeriodId((currentId) => {
+            if (currentId === periodToDelete) return 1;
+            return currentId;
+        });
+
+        // Чистим mixVolumes от удалённого периода
+        setMixVolumes((prev) => {
+            const copy = { ...prev };
+            delete copy[periodToDelete];
+            return copy;
+        });
+
+        setPeriodToDelete(null);
+    };
+
+
     // Таблица периодов
     if (step === 'setup') {
         return (
             <div className="watering-page">
+                {periodToDelete !== null && (
+                    <div className="confirm-overlay" onClick={cancelDelete}>
+                        <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="confirm-modal__icon">⚠</div>
+                            <h3 className="confirm-modal__title">Удалить период?</h3>
+                            <p className="confirm-modal__text">
+                                Период «{
+                                    periods.find((p) => p.id === periodToDelete)?.name
+                                }» будет удалён вместе с введёнными данными.
+                                Это действие нельзя отменить.
+                            </p>
+                            <div className="confirm-modal__actions">
+                                <button
+                                    type="button"
+                                    className="watering-button watering-button--secondary"
+                                    onClick={cancelDelete}
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="button"
+                                    className="watering-button watering-button--danger"
+                                    onClick={confirmDelete}
+                                >
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="watering-card">
                     <h1 className="watering-title">Система полива</h1>
 
@@ -91,12 +166,16 @@ const WateringPage = () => {
                             type="date"
                             className="watering-date__input"
                             value={selectedDate}
-                            max={today}
                             onChange={(e) => setSelectedDate(e.target.value)}
                         />
-                        {!isToday && (
+                        {isPast && (
                             <span className="watering-date__note">
                                 Просмотр прошлых данных. Изменения недоступны.
+                            </span>
+                        )}
+                        {selectedDate > today && (
+                            <span className="watering-date__note watering-date__note--future">
+                                Планирование на будущую дату. Изменения сохранятся.
                             </span>
                         )}
                     </div>
@@ -115,8 +194,22 @@ const WateringPage = () => {
                             <thead>
                                 <tr>
                                     <th></th>
-                                    {periods.map((p) => (
-                                        <th key={p.id}>{p.name}</th>
+                                    {periods.map((p, i) => (
+                                        <th key={p.id}>
+                                            <div className="watering-table__head">
+                                                <span>{p.name}</span>
+                                                {periods.length > 2 && (
+                                                    <button
+                                                        type="button"
+                                                        className="watering-table__remove"
+                                                        onClick={() => askDeletePeriod(p.id)}
+                                                        title="Удалить период"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </th>
                                     ))}
                                     <th className="watering-table__add-cell">
                                         <button
@@ -139,7 +232,7 @@ const WateringPage = () => {
                                                 type="time"
                                                 className="watering-table__input"
                                                 value={p.start}
-                                                disabled={!isToday}
+                                                disabled={!isEditable}
                                                 onChange={(e) =>
                                                     updatePeriod(p.id, 'start', e.target.value)
                                                 }
@@ -157,7 +250,7 @@ const WateringPage = () => {
                                                 className="watering-table__input"
                                                 placeholder="мин"
                                                 value={p.duration}
-                                                disabled={!isToday}
+                                                disabled={!isEditable}
                                                 onChange={(e) =>
                                                     updatePeriod(p.id, 'duration', e.target.value)
                                                 }
@@ -175,7 +268,7 @@ const WateringPage = () => {
                                                 className="watering-table__input"
                                                 placeholder="л"
                                                 value={p.volume}
-                                                disabled={!isToday}
+                                                disabled={!isEditable}
                                                 onChange={(e) =>
                                                     updatePeriod(p.id, 'volume', e.target.value)
                                                 }
@@ -191,7 +284,7 @@ const WateringPage = () => {
                     <button
                         className="watering-button"
                         onClick={() => setStep('distribution')}
-                        disabled={!isToday}
+                        disabled={!isEditable}
                     >
                         Настройка полива
                     </button>
