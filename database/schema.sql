@@ -43,7 +43,7 @@ BEGIN
     -- Проверяем, используется ли добавка в составе растворов
     SELECT COUNT(*) INTO usage_count
     FROM public.состав_раствора
-    WHERE id_добавка = OLD.id_добавка;
+    WHERE id_добавки = OLD.id_добавки;
 
     -- Если используется, запрещаем удаление
     IF usage_count > 0 THEN
