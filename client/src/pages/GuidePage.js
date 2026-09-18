@@ -1,8 +1,8 @@
 ﻿import React from 'react';
 import './GuidePage.css';
 
-const GuideStep = ({ img, alt, caption, children }) => (
-    <div className="guide-step">
+const GuideStep = ({ img, alt, caption, children, variant = 'row' }) => (
+    <div className={`guide-step guide-step--${variant}`}>
         <div className="guide-step__image">
             <img src={img} alt={alt} />
         </div>

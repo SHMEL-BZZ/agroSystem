@@ -90,6 +90,12 @@
     justify-content: center;
 }
 
+.charts-plot__canvas {
+    width: 100%;
+    height: 420px;
+    flex: 1;
+}
+
 /* Заглушка вместо графика */
 .charts-plot__placeholder {
     width: 100%;

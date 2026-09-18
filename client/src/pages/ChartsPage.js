@@ -1,5 +1,7 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import './ChartsPage.css';
+import ChartRenderer from '../components/ChartRenderer';
+import { fetchChartData } from '../data/chartsData';
 
 const ChartsPage = () => {
     // Список графиков с описаниями
@@ -60,13 +62,36 @@ const ChartsPage = () => {
         },
     ];
 
-    // Активный график (по умолчанию — первый)
     const [activeId, setActiveId] = useState(charts[0].id);
+    const [chartConfig, setChartConfig] = useState(null);
+    const [loading, setLoading] = useState(false);
+
     const activeChart = charts.find((c) => c.id === activeId);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        setChartConfig(null);
+
+        fetchChartData(activeId)
+            .then((config) => {
+                if (!cancelled) setChartConfig(config);
+            })
+            .catch((err) => {
+                console.error('Ошибка загрузки графика:', err);
+                if (!cancelled) setChartConfig(null);
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeId]);
 
     return (
         <div className="charts-page">
-            {/* Левая панель — список графиков */}
             <aside className="charts-sidebar">
                 {charts.map((chart) => (
                     <button
@@ -82,7 +107,6 @@ const ChartsPage = () => {
                 ))}
             </aside>
 
-            {/* Правая панель — описание и график */}
             <main className="charts-content">
                 <div className="charts-description">
                     <h2 className="charts-description__title">Описание:</h2>
@@ -90,12 +114,23 @@ const ChartsPage = () => {
                 </div>
 
                 <div className="charts-plot">
-                    {/*
-                        TODO: здесь будет построен график для выбранного пункта.
-                    */}
-                    <div className="charts-plot__placeholder">
-                        <p>Здесь будет график «{activeChart.title}»</p>
-                    </div>
+                    {loading && (
+                        <div className="charts-plot__placeholder">
+                            <p>Загрузка данных…</p>
+                        </div>
+                    )}
+
+                    {!loading && chartConfig && (
+                        <div className="charts-plot__canvas">
+                            <ChartRenderer config={chartConfig} />
+                        </div>
+                    )}
+
+                    {!loading && !chartConfig && (
+                        <div className="charts-plot__placeholder">
+                            <p>Нет данных для «{activeChart.title}»</p>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
