@@ -24,13 +24,13 @@ jobs:
           --health-retries 10
 
     env:
-      PGPASSWORD_SUPER: postgres
-      PGPASSWORD_APP: AppPassword123!
       DB_HOST: localhost
       DB_PORT: 5432
       DB_NAME: watering
       DB_USERNAME: app_user
       DB_PASSWORD: AppPassword123!
+      PGPASSWORD_SUPER: postgres
+      PGPASSWORD_APP: AppPassword123!
 
     steps:
       - uses: actions/checkout@v4
@@ -40,33 +40,53 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      - name: Init roles and extensions
+      # Создаём роль, расширения и выдаём права — от postgres
+      - name: Init roles, extensions and grants
         run: |
           psql -h "$DB_HOST" -U postgres -d "$DB_NAME" -v ON_ERROR_STOP=1 <<'SQL'
+          -- Создаём роль app_user, если её нет
           DO $$
           BEGIN
             IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
               CREATE ROLE app_user LOGIN PASSWORD 'AppPassword123!';
             END IF;
           END$$;
+
+          -- Расширения
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+          -- Права на БД
           GRANT CONNECT ON DATABASE watering TO app_user;
-          GRANT USAGE ON SCHEMA public TO app_user;
+
+          -- Права на схему public
+          GRANT CREATE, USAGE ON SCHEMA public TO app_user;
+
+          -- Права на будущие таблицы и последовательности
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT USAGE, SELECT ON SEQUENCES TO app_user;
           SQL
         env:
           PGPASSWORD: ${{ env.PGPASSWORD_SUPER }}
 
+      # Применяем схему от app_user
       - name: Apply schema
-        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/schema.sql
+        run: |
+          psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/schema.sql
         env:
           PGPASSWORD: ${{ env.PGPASSWORD_APP }}
 
+      # Загружаем тестовые данные от app_user
       - name: Load test data
-        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/test-data.sql
+        run: |
+          psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/test-data.sql
         env:
           PGPASSWORD: ${{ env.PGPASSWORD_APP }}
 
+      # Запускаем SQL‑тесты от app_user
       - name: Run SQL tests
-        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/tests.sql
+        run: |
+          psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/tests.sql
         env:
           PGPASSWORD: ${{ env.PGPASSWORD_APP }}
