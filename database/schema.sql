@@ -53,7 +53,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.check_additive_not_in_use() OWNER TO postgres;
+--ALTER FUNCTION public.check_additive_not_in_use() OWNER TO postgres;
 
 
 CREATE FUNCTION public.check_additive_stock() RETURNS trigger
