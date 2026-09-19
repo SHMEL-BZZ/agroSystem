@@ -9,12 +9,12 @@ const SolutionsPage = () => {
     const [isHintOpen, setIsHintOpen] = useState(false);
     const [tankToDelete, setTankToDelete] = useState(null);
 
-    // Заглушка
     const [tanks, setTanks] = useState([
-        { id: 1, name: 'Бак 1', fill: 100, contents: ['Вода — 100 л.', 'Сульфат …', '…'] },
-        { id: 2, name: 'Бак 2', fill: 65, contents: ['Вода — 80 л.', 'Калий …', '…'] },
-        { id: 3, name: 'Бак 3', fill: 30, contents: ['Вода — 50 л.', '…', '…'] },
+        { id: 1, name: 'Бак 1', fill: 0, contents: [] },
+        { id: 2, name: 'Бак 2', fill: 0, contents: [] },
+        { id: 3, name: 'Бак 3', fill: 0, contents: [] },
     ]);
+
     const [activeTankId, setActiveTankId] = useState(tanks[0].id);
     const activeTank = tanks.find((t) => t.id === activeTankId);
 
@@ -118,14 +118,41 @@ const SolutionsPage = () => {
 
     // Обработчик кнопки «Замешать»
     const handleMix = () => {
-        console.log('Замешать:', {
-            tank: activeTank.name,
-            water: waterLiters,
-            additives: additives.map((a) => ({
-                additive: solutionAdditives.find((s) => s.id === a.additiveId)?.name || '—',
-                volume: a.volume,
-            })),
+        if (!activeTank) return;
+
+        const newContents = [];
+
+        if (waterLiters && parseFloat(waterLiters) > 0) {
+            newContents.push(`Вода — ${waterLiters} л.`);
+        }
+
+        additives.forEach((row) => {
+            const additive = solutionAdditives.find((s) => s.id === row.additiveId);
+            if (additive && row.volume && parseFloat(row.volume) > 0) {
+                newContents.push(`${additive.name} — ${row.volume} л.`);
+            }
         });
+
+        if (newContents.length === 0) {
+            alert('Введите хотя бы один компонент для замеса.');
+            return;
+        }
+
+        setTanks((prev) =>
+            prev.map((t) =>
+                t.id === activeTankId
+                    ? {
+                        ...t,
+                        fill: Math.min(t.fill + 10, 100),
+                        contents: newContents,
+                    }
+                    : t
+            )
+        );
+
+        setWaterLiters('');
+        setAdditivesCount('');
+        setAdditives([]);
     };
 
     const mixContent = (
@@ -241,11 +268,15 @@ const SolutionsPage = () => {
                         </button>
                     </div>
 
-                    <ol className="mix-info__list">
-                        {activeTank.contents.map((line, i) => (
-                            <li key={i}>{line}</li>
-                        ))}
-                    </ol>
+                    {activeTank.contents.length > 0 ? (
+                        <ol className="mix-info__list">
+                            {activeTank.contents.map((line, i) => (
+                                <li key={i}>{line}</li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="mix-info__empty">Бак пуст</p>
+                    )}
                 </div>
 
                 {/* Модалка */}

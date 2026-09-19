@@ -1,6 +1,4 @@
-﻿/* Страница */
-
-.solutions-page {
+﻿.solutions-page {
     padding: 5px 60px 40px;
     min-height: calc(100vh - 80px);
     box-sizing: border-box;
@@ -11,7 +9,6 @@
     background-repeat: no-repeat;
 }
 
-/* Вкладки */
 .solutions-tabs {
     display: flex;
     justify-content: center;
@@ -39,10 +36,6 @@
     color: #2b1814;
 }
 
-/* ============================================================
-   Вкладка "Регуляция смеси"
-   ============================================================ */
-
 .solutions-mix {
     display: flex;
     gap: 40px;
@@ -60,7 +53,6 @@
     gap: 20px;
 }
 
-/* Фиксированная ширина правой колонки — карточка не «прыгает» */
 .solutions-mix__right {
     flex: 0 0 560px;
     max-width: 560px;
@@ -69,7 +61,6 @@
     gap: 20px;
 }
 
-/* Выбор баков */
 .tanks-selector {
     display: flex;
     flex-direction: column;
@@ -81,12 +72,18 @@
     display: flex;
     gap: 10px;
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: hidden;
     max-width: 320px;
     padding: 8px 8px 0 0;
     scroll-behavior: smooth;
     box-sizing: content-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+    .tanks-selector__row::-webkit-scrollbar {
+        display: none;
+    }
 
 .tanks-selector__tank {
     min-width: 44px;
@@ -157,7 +154,6 @@
     border-radius: 3px;
 }
 
-/* Изображение бака */
 .tank-view {
     position: relative;
     width: 320px;
@@ -179,7 +175,6 @@
     color: #333;
 }
 
-/* Содержимое бака */
 .mix-info {
     background-color: #FEF1E0;
     border-radius: 20px;
@@ -240,7 +235,6 @@
         transform: scale(0.95);
     }
 
-/* Модалка */
 .hint-modal-overlay {
     position: fixed;
     inset: 0;
@@ -319,7 +313,6 @@
     }
 }
 
-/* Добавление в раствор */
 .mix-add {
     background-color: #FEF1E0;
     border-radius: 20px;
@@ -345,7 +338,7 @@
 }
 
     .mix-add__row label {
-        flex: 0 0 220px; 
+        flex: 0 0 220px;
         width: 220px;
     }
 
@@ -365,7 +358,6 @@
         border-color: #AE6E42;
     }
 
-/* Кнопка "Замешать" */
 .mix-button {
     align-self: flex-end;
     background-color: #7EA6D9;
@@ -387,10 +379,6 @@
         transform: scale(0.97);
     }
 
-/* ============================================================
-   Вкладка "Информация" — поиск + карточки добавок
-   ============================================================ */
-
 .solutions-info {
     max-width: 1000px;
     margin: 0 auto;
@@ -400,7 +388,6 @@
     padding: 0 20px;
 }
 
-/* Поиск */
 .solutions-info__search {
     position: relative;
     display: flex;
@@ -449,7 +436,6 @@
         background-color: #F3E6D2;
     }
 
-/* Ничего не найдено */
 .solutions-info__empty {
     padding: 40px 20px;
     text-align: center;
@@ -460,7 +446,6 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Группа */
 .solutions-info__group {
     display: flex;
     flex-direction: column;
@@ -468,7 +453,6 @@
     margin-top: 8px;
 }
 
-/* Заголовок группы — контрастная плашка */
 .solutions-info__group-title {
     display: flex;
     align-items: center;
@@ -502,7 +486,6 @@
     gap: 16px;
 }
 
-/* Карточка */
 .solutions-info__block {
     display: flex;
     gap: 24px;
@@ -513,7 +496,6 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Заглушка вместо изображения */
 .solutions-info__placeholder {
     width: 150px;
     height: 150px;
@@ -589,7 +571,6 @@
     margin-right: 2px;
 }
 
-/* Дозировка */
 .solutions-info__dose {
     margin: 4px 0 0 0;
     font-size: 0.95rem;
@@ -606,10 +587,6 @@
     color: #2E7D32;
     margin-right: 2px;
 }
-
-/* ============================================================
-   Динамические строки добавок
-   ============================================================ */
 
 .mix-add__additives {
     display: flex;
@@ -649,7 +626,6 @@
     width: 100px;
 }
 
-/* Адаптив */
 @media (max-width: 1000px) {
     .solutions-mix {
         flex-direction: column;
@@ -752,4 +728,11 @@
 
 .hint-modal__btn:active {
     transform: scale(0.97);
+}
+
+.mix-info__empty {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #A98A6A;
+    font-style: italic;
 }
