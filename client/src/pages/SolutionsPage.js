@@ -7,6 +7,7 @@ const SolutionsPage = () => {
 
     const [activeTab, setActiveTab] = useState('mix'); // 'mix' | 'info'
     const [isHintOpen, setIsHintOpen] = useState(false);
+    const [tankToDelete, setTankToDelete] = useState(null);
 
     // Заглушка
     const [tanks, setTanks] = useState([
@@ -41,12 +42,34 @@ const SolutionsPage = () => {
         }
     };
 
+    const askDeleteTank = (id) => {
+        if (tanks.length <= 2) return;   // минимум два бака
+        setTankToDelete(id);
+    };
+
+    const cancelDeleteTank = () => setTankToDelete(null);
+
+    const confirmDeleteTank = () => {
+        setTanks((prev) => {
+            const filtered = prev.filter((t) => t.id !== tankToDelete);
+            return filtered.map((t, i) => ({
+                ...t,
+                name: `Бак ${i + 1}`,
+            }));
+        });
+
+        setActiveTankId((current) => (current === tankToDelete ? 1 : current));
+        setTankToDelete(null);
+    };
+
     // Добавление нового бака
     const addTank = () => {
         const newId = tanks.length ? Math.max(...tanks.map((t) => t.id)) + 1 : 1;
+        const newName = `Бак ${tanks.length + 1}`;
+
         const newTank = {
             id: newId,
-            name: `Бак ${newId}`,
+            name: newName,
             fill: 0,
             contents: ['Пусто'],
         };
@@ -107,22 +130,74 @@ const SolutionsPage = () => {
             <div className="solutions-mix__left">
                 <div className="tanks-selector">
                     <div className="tanks-selector__row" ref={tanksListRef}>
-                        {tanks.map((tank) => (
-                            <button
-                                key={tank.id}
-                                className={
-                                    'tanks-selector__tank' +
-                                    (tank.id === activeTankId ? ' tanks-selector__tank--active' : '')
-                                }
-                                onClick={() => setActiveTankId(tank.id)}
-                            >
-                                {tank.id}
-                            </button>
+                        {tanks.map((tank, index) => (
+                            <div key={tank.id} className="tanks-selector__tank-wrapper">
+                                <button
+                                    className={
+                                        'tanks-selector__tank' +
+                                        (tank.id === activeTankId ? ' tanks-selector__tank--active' : '')
+                                    }
+                                    onClick={() => setActiveTankId(tank.id)}
+                                >
+                                    {index + 1}
+                                </button>
+
+                                {tanks.length > 2 && (
+                                    <button
+                                        type="button"
+                                        className="tanks-selector__remove"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            askDeleteTank(tank.id);
+                                        }}
+                                        title="Удалить бак"
+                                        aria-label="Удалить бак"
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
                         ))}
                         <button className="tanks-selector__add" onClick={addTank} title="Добавить бак">
                             +
                         </button>
                     </div>
+
+                    {tankToDelete !== null && (
+                        <div className="hint-modal-overlay" onClick={cancelDeleteTank}>
+                            <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    type="button"
+                                    className="hint-modal__close"
+                                    onClick={cancelDeleteTank}
+                                    aria-label="Закрыть"
+                                >
+                                    ×
+                                </button>
+                                <div className="hint-modal__icon">⚠</div>
+                                <p className="hint-modal__text">
+                                    Удалить бак «{tanks.find((t) => t.id === tankToDelete)?.name}»?
+                                    Всё его содержимое будет потеряно.
+                                </p>
+                                <div className="hint-modal__actions">
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--secondary"
+                                        onClick={cancelDeleteTank}
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--danger"
+                                        onClick={confirmDeleteTank}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {tanks.length > 3 && (
                         <div className="tanks-selector__slider">
