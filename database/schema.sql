@@ -77,7 +77,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.check_additive_stock() OWNER TO postgres;
+--  ALTER FUNCTION public.check_additive_stock() OWNER TO postgres;
 
 
 CREATE FUNCTION public.check_password(user_login character varying, user_password text) RETURNS boolean
@@ -99,7 +99,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.check_password(user_login character varying, user_password text) OWNER TO postgres;
+-- ALTER FUNCTION public.check_password(user_login character varying, user_password text) OWNER TO postgres;
 
 
 CREATE FUNCTION public.check_watering_data() RETURNS trigger
@@ -119,7 +119,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.check_watering_data() OWNER TO postgres;
+-- ALTER FUNCTION public.check_watering_data() OWNER TO postgres;
 
 
 CREATE FUNCTION public.decrease_additive_stock() RETURNS trigger
@@ -135,7 +135,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.decrease_additive_stock() OWNER TO postgres;
+-- ALTER FUNCTION public.decrease_additive_stock() OWNER TO postgres;
 
 
 CREATE FUNCTION public.hash_password(password text) RETURNS text
@@ -147,7 +147,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.hash_password(password text) OWNER TO postgres;
+-- ALTER FUNCTION public.hash_password(password text) OWNER TO postgres;
 
 
 CREATE FUNCTION public.log_valve_state_change() RETURNS trigger
@@ -164,7 +164,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.log_valve_state_change() OWNER TO postgres;
+-- ALTER FUNCTION public.log_valve_state_change() OWNER TO postgres;
 
 
 CREATE FUNCTION public.update_solution_total_volume() RETURNS trigger
@@ -193,7 +193,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.update_solution_total_volume() OWNER TO postgres;
+--ALTER FUNCTION public.update_solution_total_volume() OWNER TO postgres;
 
 
 CREATE FUNCTION public.update_watering_timestamp() RETURNS trigger
@@ -209,7 +209,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.update_watering_timestamp() OWNER TO postgres;
+--ALTER FUNCTION public.update_watering_timestamp() OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -223,7 +223,7 @@ CREATE TABLE public."баки" (
 );
 
 
-ALTER TABLE public."баки" OWNER TO postgres;
+-- ALTER TABLE public."баки" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."баки_id_бака_seq"
@@ -235,7 +235,7 @@ CREATE SEQUENCE public."баки_id_бака_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."баки_id_бака_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."баки_id_бака_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."баки_id_бака_seq" OWNED BY public."баки"."id_бака";
@@ -250,7 +250,7 @@ CREATE TABLE public."добавки" (
 );
 
 
-ALTER TABLE public."добавки" OWNER TO postgres;
+-- ALTER TABLE public."добавки" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."добавки_id_добавка_seq"
@@ -262,7 +262,7 @@ CREATE SEQUENCE public."добавки_id_добавка_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."добавки_id_добавка_seq" OWNER TO postgres;
+-- ALTER SEQUENCE public."добавки_id_добавка_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."добавки_id_добавка_seq" OWNED BY public."добавки"."id_добавки";
@@ -280,7 +280,7 @@ CREATE TABLE public."ежедневные_условия" (
 );
 
 
-ALTER TABLE public."ежедневные_условия" OWNER TO postgres;
+--ALTER TABLE public."ежедневные_условия" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."ежедневные_условия_id_ежуслов_seq"
@@ -292,7 +292,7 @@ CREATE SEQUENCE public."ежедневные_условия_id_ежуслов_se
     CACHE 1;
 
 
-ALTER SEQUENCE public."ежедневные_условия_id_ежуслов_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."ежедневные_условия_id_ежуслов_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."ежедневные_условия_id_ежуслов_seq" OWNED BY public."ежедневные_условия"."id_ежуслов";
@@ -306,7 +306,7 @@ CREATE TABLE public."история_дренажа" (
 );
 
 
-ALTER TABLE public."история_дренажа" OWNER TO postgres;
+--ALTER TABLE public."история_дренажа" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."история_дренажа_id_дренажа_seq"
@@ -318,7 +318,7 @@ CREATE SEQUENCE public."история_дренажа_id_дренажа_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."история_дренажа_id_дренажа_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."история_дренажа_id_дренажа_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."история_дренажа_id_дренажа_seq" OWNED BY public."история_дренажа"."id_дренажа";
@@ -334,7 +334,7 @@ CREATE TABLE public."история_поливов" (
 );
 
 
-ALTER TABLE public."история_поливов" OWNER TO postgres;
+--ALTER TABLE public."история_поливов" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."история_поливов_id_полива_seq"
@@ -346,7 +346,7 @@ CREATE SEQUENCE public."история_поливов_id_полива_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."история_поливов_id_полива_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."история_поливов_id_полива_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."история_поливов_id_полива_seq" OWNED BY public."история_поливов"."id_полива";
@@ -360,7 +360,7 @@ CREATE TABLE public."история_раствора" (
 );
 
 
-ALTER TABLE public."история_раствора" OWNER TO postgres;
+--ALTER TABLE public."история_раствора" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."история_раствора_id_раствора_seq"
@@ -372,7 +372,7 @@ CREATE SEQUENCE public."история_раствора_id_раствора_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."история_раствора_id_раствора_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."история_раствора_id_раствора_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."история_раствора_id_раствора_seq" OWNED BY public."история_раствора"."id_раствора";
@@ -390,7 +390,7 @@ CREATE TABLE public."клапаны" (
 );
 
 
-ALTER TABLE public."клапаны" OWNER TO postgres;
+--ALTER TABLE public."клапаны" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."клапаны_id_клапана_seq"
@@ -402,7 +402,7 @@ CREATE SEQUENCE public."клапаны_id_клапана_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."клапаны_id_клапана_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."клапаны_id_клапана_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."клапаны_id_клапана_seq" OWNED BY public."клапаны"."id_клапана";
@@ -414,7 +414,7 @@ CREATE TABLE public."назначение_баков" (
 );
 
 
-ALTER TABLE public."назначение_баков" OWNER TO postgres;
+--ALTER TABLE public."назначение_баков" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."назначение_баков_id_назначения_seq"
@@ -426,7 +426,7 @@ CREATE SEQUENCE public."назначение_баков_id_назначения_
     CACHE 1;
 
 
-ALTER SEQUENCE public."назначение_баков_id_назначения_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."назначение_баков_id_назначения_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."назначение_баков_id_назначения_seq" OWNED BY public."назначение_баков"."id_назначения";
@@ -451,7 +451,7 @@ CREATE SEQUENCE public."пользователи_id_пользователя_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public."пользователи_id_пользователя_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."пользователи_id_пользователя_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."пользователи_id_пользователя_seq" OWNED BY public."пользователи"."id_пользователя";
@@ -479,7 +479,7 @@ CREATE SEQUENCE public."состав_раствора_id_состава_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."состав_раствора_id_состава_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."состав_раствора_id_состава_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."состав_раствора_id_состава_seq" OWNED BY public."состав_раствора"."id_состава";
@@ -492,7 +492,7 @@ CREATE TABLE public."список_блока_теплиц" (
 );
 
 
-ALTER TABLE public."список_блока_теплиц" OWNER TO postgres;
+--ALTER TABLE public."список_блока_теплиц" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."список_блока_тепл_id_блока_теплиц_seq"
@@ -503,8 +503,7 @@ CREATE SEQUENCE public."список_блока_тепл_id_блока_тепл�
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER SEQUENCE public."список_блока_тепл_id_блока_теплиц_seq" OWNER TO postgres;
+--ALTER SEQUENCE public."список_блока_тепл_id_блока_теплиц_seq" OWNER TO postgres;
 
 
 ALTER SEQUENCE public."список_блока_тепл_id_блока_теплиц_seq" OWNED BY public."список_блока_теплиц"."id_блока_теплиц";
@@ -516,7 +515,7 @@ CREATE TABLE public."теплицы_клапаны" (
 );
 
 
-ALTER TABLE public."теплицы_клапаны" OWNER TO postgres;
+--ALTER TABLE public."теплицы_клапаны" OWNER TO postgres;
 
 
 ALTER TABLE ONLY public."баки" ALTER COLUMN "id_бака" SET DEFAULT nextval('public."баки_id_бака_seq"'::regclass);
