@@ -93,6 +93,9 @@ export const chartConfigs = {
     drainage: {
         type: 'bar',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'Объём, л',
+        yRightLabel: 'Дренаж, %',
         data: mockDrainage,
         series: [
             { key: 'watering', name: 'Полив, л', color: '#4A90E2', unit: 'л' },
@@ -104,6 +107,9 @@ export const chartConfigs = {
     'ec-ph': {
         type: 'line',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'EC, мСм/см',
+        yRightLabel: 'pH',
         data: mockEcPh,
         series: [
             { key: 'feedEC', name: 'EC подача', color: '#4A90E2', unit: 'мСм/см' },
@@ -118,6 +124,8 @@ export const chartConfigs = {
     watering: {
         type: 'bar',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'Объём, л',
         data: mockWatering,
         series: [{ key: 'volume', name: 'Объём, л', color: '#4A90E2', unit: 'л' }],
     },
@@ -125,6 +133,9 @@ export const chartConfigs = {
     starts: {
         type: 'bar',
         xKey: 'time',
+        xLabel: 'Время старта',
+        yLeftLabel: 'Длительность, мин',
+        yRightLabel: 'Пауза, мин',
         data: mockStarts,
         series: [
             { key: 'duration', name: 'Длительность, мин', color: '#4A90E2', unit: 'мин' },
@@ -135,6 +146,8 @@ export const chartConfigs = {
     'feed-ec': {
         type: 'line',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'EC, мСм/см',
         data: mockFeedEc,
         series: [
             { key: 'feedEC', name: 'EC фактический', color: '#4A90E2', unit: 'мСм/см' },
@@ -145,6 +158,8 @@ export const chartConfigs = {
     'feed-ph': {
         type: 'line',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'pH',
         data: mockFeedPh,
         series: [
             { key: 'feedPH', name: 'pH фактический', color: '#9C27B0', unit: 'pH' },
@@ -155,6 +170,8 @@ export const chartConfigs = {
     'water-temp': {
         type: 'line',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'Температура, °C',
         data: mockWaterTemp,
         series: [{ key: 'temp', name: 'Температура', color: '#FF9800', unit: '°C' }],
     },
@@ -162,6 +179,8 @@ export const chartConfigs = {
     'substrate-moisture': {
         type: 'area',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'Влажность, %',
         data: mockSubstrateMoisture,
         series: [{ key: 'wc', name: 'Влажность', color: '#2E7D32', unit: '%' }],
     },
@@ -169,6 +188,9 @@ export const chartConfigs = {
     consumption: {
         type: 'line',
         xKey: 'time',
+        xLabel: 'Время',
+        yLeftLabel: 'Вода, м³',
+        yRightLabel: 'Удобрения, л',
         data: mockConsumption,
         series: [
             { key: 'water', name: 'Вода, м³', color: '#4A90E2', unit: 'м³' },
@@ -178,7 +200,6 @@ export const chartConfigs = {
         ],
     },
 };
-
 // "Алгоритм" получения данных по id
 
 export async function fetchChartData(chartId) {

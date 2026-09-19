@@ -1,5 +1,7 @@
 ﻿import React, { useState, useRef } from 'react';
 import './SolutionsPage.css';
+import SolutionsInfo from '../components/SolutionsInfo';
+import { solutionAdditives } from '../data/solutionsInfo';
 
 const SolutionsPage = () => {
 
@@ -17,7 +19,15 @@ const SolutionsPage = () => {
 
     // Поля для добавления в раствор
     const [waterLiters, setWaterLiters] = useState('');
-    const [fertilizerLiters, setFertilizerLiters] = useState('');
+
+    // Сколько добавок хочет ввести пользователь
+    const [additivesCount, setAdditivesCount] = useState('');
+
+    // Массив выбранных добавок и объёмов: [{ additiveId, volume }]
+    const [additives, setAdditives] = useState([]);
+
+    // Максимально допустимое количество
+    const MAX_ADDITIVES = solutionAdditives.length;
 
     // Прокрутка списка баков
     const tanksListRef = useRef(null);
@@ -44,59 +54,52 @@ const SolutionsPage = () => {
         setActiveTankId(newId);
     };
 
+    // Изменение количества добавок
+    const handleAdditivesCountChange = (value) => {
+        if (value === '') {
+            setAdditivesCount('');
+            setAdditives([]);
+            return;
+        }
+
+        let num = parseInt(value, 10);
+        if (isNaN(num)) return;
+        if (num < 0) num = 0;
+        if (num > MAX_ADDITIVES) num = MAX_ADDITIVES;
+
+        setAdditivesCount(String(num));
+
+        setAdditives((prev) => {
+            const next = [...prev];
+            if (next.length < num) {
+                for (let i = next.length; i < num; i++) {
+                    next.push({ additiveId: '', volume: '' });
+                }
+            } else if (next.length > num) {
+                next.length = num;
+            }
+            return next;
+        });
+    };
+
+    // Изменение конкретной строки
+    const updateAdditive = (index, field, value) => {
+        setAdditives((prev) =>
+            prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+        );
+    };
+
     // Обработчик кнопки «Замешать»
     const handleMix = () => {
         console.log('Замешать:', {
             tank: activeTank.name,
             water: waterLiters,
-            fertilizer: fertilizerLiters,
+            additives: additives.map((a) => ({
+                additive: solutionAdditives.find((s) => s.id === a.additiveId)?.name || '—',
+                volume: a.volume,
+            })),
         });
     };
-
-    // "Информация"
-    const infoContent = (
-        <div className="solutions-info">
-            <div className="solutions-info__block">
-                <div className="solutions-info__placeholder solutions-info__placeholder--left">
-                    <span>Изображение<br />удобрения</span>
-                </div>
-                <div>
-                    <h3>Азотно-фосфорно-калийное удобрение</h3>
-                    <p>
-                        — это комплексное минеральное удобрение, содержащее три основных макроэлемента
-                        питания растений: азот (N), который отвечает за рост зелёной массы и листьев,
-                        фосфор (P), стимулирующий развитие корневой системы и цветение, и калий (K),
-                        влияющий на качество, вкус и размер плодов, а также повышающий устойчивость
-                        культур к засухе, морозам и болезням. Разные культуры и фазы вегетации требуют
-                        различных пропорций NPK, поэтому точный подбор формулы под конкретное поле,
-                        сезон и тип почвы — ключевая задача агронома, а наше приложение помогает
-                        рассчитывать оптимальные дозировки автоматически, чтобы избежать как дефицита,
-                        так и перекорма растений.
-                    </p>
-                </div>
-            </div>
-
-            <div className="solutions-info__block">
-                <div className="solutions-info__placeholder solutions-info__placeholder--left">
-                    <span>Изображение<br />удобрения</span>
-                </div>
-                <div>
-                    <h3>Азотно-фосфорно-калийное удобрение</h3>
-                    <p>
-                        — это комплексное минеральное удобрение, содержащее три основных макроэлемента
-                        питания растений: азот (N), который отвечает за рост зелёной массы и листьев,
-                        фосфор (P), стимулирующий развитие корневой системы и цветение, и калий (K),
-                        влияющий на качество, вкус и размер плодов, а также повышающий устойчивость
-                        культур к засухе, морозам и болезням. Разные культуры и фазы вегетации требуют
-                        различных пропорций NPK, поэтому точный подбор формулы под конкретное поле,
-                        сезон и тип почвы — ключевая задача агронома, а наше приложение помогает
-                        рассчитывать оптимальные дозировки автоматически, чтобы избежать как дефицита,
-                        так и перекорма растений.
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
 
     const mixContent = (
         <div className="solutions-mix">
@@ -121,22 +124,15 @@ const SolutionsPage = () => {
                         </button>
                     </div>
 
-                    {/* Ползунок под списком баков */}
                     {tanks.length > 3 && (
                         <div className="tanks-selector__slider">
-                            <button
-                                className="tanks-selector__arrow"
-                                onClick={() => scrollTanks('left')}
-                            >
+                            <button className="tanks-selector__arrow" onClick={() => scrollTanks('left')}>
                                 ◀
                             </button>
                             <div className="tanks-selector__track">
                                 <div className="tanks-selector__thumb" />
                             </div>
-                            <button
-                                className="tanks-selector__arrow"
-                                onClick={() => scrollTanks('right')}
-                            >
+                            <button className="tanks-selector__arrow" onClick={() => scrollTanks('right')}>
                                 ▶
                             </button>
                         </div>
@@ -149,13 +145,12 @@ const SolutionsPage = () => {
                 </div>
             </div>
 
-            {/* Правая колонка: информация + добавление + кнопка */}
+            {/* Правая колонка */}
             <div className="solutions-mix__right">
                 <div className="mix-info">
                     <div className="mix-info__header">
                         <h3 className="mix-info__title">Содержимое:</h3>
 
-                        {/* Кнопка-иконка в правом верхнем углу блока */}
                         <button
                             type="button"
                             className="mix-info__hint-icon"
@@ -174,7 +169,7 @@ const SolutionsPage = () => {
                     </ol>
                 </div>
 
-                {/* Всплывающее окно (модалка) */}
+                {/* Модалка */}
                 {isHintOpen && (
                     <div className="hint-modal-overlay" onClick={() => setIsHintOpen(false)}>
                         <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
@@ -197,6 +192,8 @@ const SolutionsPage = () => {
 
                 <div className="mix-add">
                     <h3 className="mix-add__title">Добавить в раствор:</h3>
+
+                    {/* Вода */}
                     <div className="mix-add__row">
                         <label>Вода</label>
                         <input
@@ -207,16 +204,54 @@ const SolutionsPage = () => {
                         />
                         <span>л.</span>
                     </div>
+
+                    {/* Сколько добавить добавок */}
                     <div className="mix-add__row">
-                        <label>Маточный раствор удобрений</label>
+                        <label>Сколько добавить добавок</label>
                         <input
                             type="number"
-                            value={fertilizerLiters}
-                            onChange={(e) => setFertilizerLiters(e.target.value)}
+                            min="0"
+                            max={MAX_ADDITIVES}
+                            value={additivesCount}
+                            onChange={(e) => handleAdditivesCountChange(e.target.value)}
                             className="mix-add__input"
+                            placeholder={`0–${MAX_ADDITIVES}`}
                         />
-                        <span>л.</span>
+                        <span>шт.</span>
                     </div>
+
+                    {/* Динамические строки добавок */}
+                    {additives.length > 0 && (
+                        <div className="mix-add__additives">
+                            {additives.map((row, index) => (
+                                <div key={index} className="mix-add__additive-row">
+                                    <select
+                                        className="mix-add__select"
+                                        value={row.additiveId}
+                                        onChange={(e) => updateAdditive(index, 'additiveId', e.target.value)}
+                                    >
+                                        <option value="">— выберите добавку —</option>
+                                        {solutionAdditives.map((s) => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.name} ({s.category})
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        className="mix-add__input mix-add__input--volume"
+                                        placeholder="объём"
+                                        value={row.volume}
+                                        onChange={(e) => updateAdditive(index, 'volume', e.target.value)}
+                                    />
+                                    <span>л.</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <button className="mix-button" onClick={handleMix}>
@@ -228,7 +263,6 @@ const SolutionsPage = () => {
 
     return (
         <div className="solutions-page">
-            {/* Вкладки */}
             <div className="solutions-tabs">
                 <button
                     className={
@@ -250,7 +284,7 @@ const SolutionsPage = () => {
                 </button>
             </div>
 
-            {activeTab === 'mix' ? mixContent : infoContent}
+            {activeTab === 'mix' ? mixContent : <SolutionsInfo />}
         </div>
     );
 };

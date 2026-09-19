@@ -1,4 +1,6 @@
-﻿.solutions-page {
+﻿/* Страница */
+
+.solutions-page {
     padding: 5px 60px 40px;
     min-height: calc(100vh - 80px);
     box-sizing: border-box;
@@ -9,6 +11,7 @@
     background-repeat: no-repeat;
 }
 
+/* Вкладки */
 .solutions-tabs {
     display: flex;
     justify-content: center;
@@ -36,7 +39,10 @@
     color: #2b1814;
 }
 
-/* Регуляция смеси */
+/* ============================================================
+   Вкладка "Регуляция смеси"
+   ============================================================ */
+
 .solutions-mix {
     display: flex;
     gap: 40px;
@@ -47,14 +53,17 @@
 
 .solutions-mix__left {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
 }
 
+/* Фиксированная ширина правой колонки — карточка не «прыгает» */
 .solutions-mix__right {
-    flex: 1;
+    flex: 0 0 560px;
+    max-width: 560px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -116,7 +125,6 @@
         color: #FEF1E0;
     }
 
-/* Ползунок под списком баков */
 .tanks-selector__slider {
     display: flex;
     align-items: center;
@@ -146,7 +154,7 @@
     border-radius: 3px;
 }
 
-/* Изображения бака */
+/* Изображение бака */
 .tank-view {
     position: relative;
     width: 320px;
@@ -175,6 +183,8 @@
     padding: 28px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .mix-info__list {
@@ -184,21 +194,6 @@
     color: #6E3813;
     line-height: 1.6;
 }
-
-.mix-info__hint {
-    background-color: #F2D84B;
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 0.95rem;
-    color: #472A26;
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    max-width: 260px;
-    margin-left: auto;
-}
-
-/**/
 
 .mix-info__header {
     display: flex;
@@ -242,6 +237,7 @@
         transform: scale(0.95);
     }
 
+/* Модалка */
 .hint-modal-overlay {
     position: fixed;
     inset: 0;
@@ -298,7 +294,6 @@
     color: #472A26;
 }
 
-/* Анимации */
 @keyframes hintFadeIn {
     from {
         opacity: 0;
@@ -327,6 +322,8 @@
     border-radius: 20px;
     padding: 28px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .mix-add__title {
@@ -357,6 +354,7 @@
     font-size: 1rem;
     color: #472A26;
     outline: none;
+    box-sizing: border-box;
 }
 
     .mix-add__input:focus {
@@ -385,29 +383,136 @@
         transform: scale(0.97);
     }
 
-/* Вкладка "Информация" */
+/* ============================================================
+   Вкладка "Информация" — поиск + карточки добавок
+   ============================================================ */
+
 .solutions-info {
     max-width: 1000px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    padding: 0 20px;
 }
 
-.solutions-info__block {
+/* Поиск */
+.solutions-info__search {
+    position: relative;
     display: flex;
-    gap: 24px;
     align-items: center;
+}
+
+.solutions-info__search-input {
+    width: 100%;
+    padding: 14px 44px 14px 18px;
+    border: 2px solid #472A26;
+    border-radius: 12px;
+    font-size: 1rem;
+    background-color: #FEF1E0;
+    color: #472A26;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+    .solutions-info__search-input::placeholder {
+        color: #A98A6A;
+    }
+
+    .solutions-info__search-input:focus {
+        border-color: #AE6E42;
+        box-shadow: 0 0 0 3px rgba(174, 110, 66, 0.15);
+    }
+
+.solutions-info__search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #AE6E42;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+    .solutions-info__search-clear:hover {
+        background-color: #F3E6D2;
+    }
+
+/* Ничего не найдено */
+.solutions-info__empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #6E3813;
+    font-size: 1.05rem;
     background-color: #FEF1E0;
     border-radius: 20px;
-    padding: 28px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Заглушка вместо изображения удобрения */
+/* Группа */
+.solutions-info__group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+/* Заголовок группы — контрастная плашка */
+.solutions-info__group-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    padding: 16px 24px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #472A26;
+    background-color: #FEF1E0;
+    border-radius: 16px;
+    border-left: 8px solid #AE6E42;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.solutions-info__group-title--mineral {
+    border-left-color: #2E7D32;
+}
+
+.solutions-info__group-title--ph {
+    border-left-color: #4A90E2;
+}
+
+.solutions-info__group-title--bio {
+    border-left-color: #E08A3C;
+}
+
+.solutions-info__list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Карточка */
+.solutions-info__block {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    background-color: #FEF1E0;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Заглушка вместо изображения */
 .solutions-info__placeholder {
-    width: 180px;
-    height: 180px;
+    width: 150px;
+    height: 150px;
     border: 2px dashed #AE6E42;
     border-radius: 12px;
     background-color: rgba(174, 110, 66, 0.08);
@@ -416,21 +521,150 @@
     justify-content: center;
     text-align: center;
     color: #AE6E42;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     flex-shrink: 0;
-    line-height: 1.4;
+    line-height: 1.35;
+    padding: 8px;
+    box-sizing: border-box;
 }
 
-.solutions-info__block h3 {
-    margin: 0 0 12px 0;
-    font-size: 1.3rem;
+.solutions-info__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.solutions-info__category {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #AE6E42;
+    font-weight: 700;
+}
+
+.solutions-info__name {
+    margin: 0;
+    font-size: 1.15rem;
     color: #472A26;
 }
 
-.solutions-info__block p {
+.solutions-info__description {
     margin: 0;
     font-size: 1rem;
     line-height: 1.55;
     color: #6E3813;
+}
+
+.solutions-info__note {
+    margin: 6px 0 0 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #472A26;
+    background-color: #F2D84B;
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.solutions-info__note-icon {
+    margin-right: 6px;
+}
+
+.solutions-info__composition {
+    margin: 4px 0 0 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #472A26;
+}
+
+.solutions-info__composition-label {
+    font-weight: 700;
+    color: #AE6E42;
+    margin-right: 2px;
+}
+
+/* Дозировка */
+.solutions-info__dose {
+    margin: 4px 0 0 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #472A26;
+    background-color: #EAF3DC;
+    border-left: 3px solid #2E7D32;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.solutions-info__dose-label {
+    font-weight: 700;
+    color: #2E7D32;
+    margin-right: 2px;
+}
+
+/* ============================================================
+   Динамические строки добавок
+   ============================================================ */
+
+.mix-add__additives {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.mix-add__additive-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mix-add__select {
+    flex: 1 1 auto;
+    min-width: 0;
+    background-color: #FEF1E0;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: #472A26;
+    outline: none;
+    cursor: pointer;
+}
+
+    .mix-add__select:focus {
+        border-color: #AE6E42;
+    }
+
+.mix-add__input--volume {
+    flex: 0 0 100px;
+    width: 100px;
+}
+
+/* Адаптив */
+@media (max-width: 1000px) {
+    .solutions-mix {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .solutions-mix__right {
+        flex: 1 1 auto;
+        max-width: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .solutions-info__block {
+        flex-direction: column;
+    }
+
+    .solutions-info__placeholder {
+        width: 100%;
+        height: 100px;
+    }
 }

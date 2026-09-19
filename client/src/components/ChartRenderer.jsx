@@ -7,7 +7,7 @@ import {
 const ChartRenderer = ({ config }) => {
     if (!config) return null;
 
-    const { type, xKey, data, series } = config;
+    const { type, xKey, data, series, xLabel, yLeftLabel, yRightLabel } = config;
     const hasRightAxis = series.some((s) => s.yAxisId === 'right');
 
     const unitByKey = series.reduce((acc, s) => {
@@ -23,31 +23,72 @@ const ChartRenderer = ({ config }) => {
     const commonAxes = (
         <>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-            <XAxis dataKey={xKey} tick={{ fontSize: 12 }} />
+
+            <XAxis
+                dataKey={xKey}
+                tick={{ fontSize: 12 }}
+                label={
+                    xLabel
+                        ? {
+                            value: xLabel,
+                            position: 'insideBottom',
+                            offset: 20,
+                            fontSize: 13,
+                        }
+                        : undefined
+                }
+                height={xLabel ? 60 : 30}
+            />
+
             <YAxis
                 yAxisId="left"
                 domain={['auto', 'auto']}
                 tick={{ fontSize: 12 }}
-                width={50}
+                width={yLeftLabel ? 70 : 50}
+                label={
+                    yLeftLabel
+                        ? {
+                            value: yLeftLabel,
+                            angle: -90,
+                            position: 'insideLeft',
+                            style: { textAnchor: 'middle', fontSize: 13 },
+                        }
+                        : undefined
+                }
             />
+
             {hasRightAxis && (
                 <YAxis
                     yAxisId="right"
                     orientation="right"
                     domain={['auto', 'auto']}
                     tick={{ fontSize: 12 }}
-                    width={50}
+                    width={yRightLabel ? 70 : 50}
+                    label={
+                        yRightLabel
+                            ? {
+                                value: yRightLabel,
+                                angle: 90,
+                                position: 'insideRight',
+                                style: { textAnchor: 'middle', fontSize: 13 },
+                            }
+                            : undefined
+                    }
                 />
             )}
+
             <Tooltip formatter={formatTooltip} />
-            <Legend wrapperStyle={{ fontSize: 13 }} />
+            <Legend wrapperStyle={{ fontSize: 13, paddingTop: 20 }} />
         </>
     );
+
+    // Отступы нужно увеличить, чтобы подписи осей не обрезались
+    const margin = { top: 20, right: hasRightAxis ? 40 : 20, left: 10, bottom: xLabel ? 50 : 20 };
 
     if (type === 'bar') {
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <BarChart data={data} margin={margin}>
                     {commonAxes}
                     {series.map((s) => (
                         <Bar
@@ -67,7 +108,7 @@ const ChartRenderer = ({ config }) => {
     if (type === 'area') {
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <AreaChart data={data} margin={margin}>
                     {commonAxes}
                     {series.map((s) => (
                         <Area
@@ -88,7 +129,7 @@ const ChartRenderer = ({ config }) => {
 
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <LineChart data={data} margin={margin}>
                 {commonAxes}
                 {series.map((s) => (
                     <Line

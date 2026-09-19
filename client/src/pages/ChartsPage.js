@@ -4,7 +4,7 @@ import ChartRenderer from '../components/ChartRenderer';
 import { fetchChartData } from '../data/chartsData';
 
 const ChartsPage = () => {
-    // Список графиков с описаниями
+    // список графиков с описаниями
     const charts = [
         {
             id: 'drainage',
