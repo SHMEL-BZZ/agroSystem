@@ -668,3 +668,13 @@
         height: 100px;
     }
 }
+
+.solutions-info__img {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    border-radius: 12px;
+    background-color: #fff;
+    flex-shrink: 0;
+    display: block;
+}

@@ -69,9 +69,11 @@ const SolutionsInfo = () => {
                             <div className="solutions-info__list">
                                 {items.map((item) => (
                                     <article key={item.id} className="solutions-info__block">
-                                        <div className="solutions-info__placeholder">
-                                            <span>Изображение<br />удобрения</span>
-                                        </div>
+                                        <img
+                                            src={`/additives/${item.id}.jpg`}
+                                            alt={item.name}
+                                            className="solutions-info__img"
+                                        />
 
                                         <div className="solutions-info__body">
                                             <div className="solutions-info__category">
