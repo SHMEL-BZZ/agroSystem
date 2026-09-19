@@ -24,7 +24,8 @@ jobs:
           --health-retries 10
 
     env:
-      PGPASSWORD: postgres
+      PGPASSWORD_SUPER: postgres
+      PGPASSWORD_APP: AppPassword123!
       DB_HOST: localhost
       DB_PORT: 5432
       DB_NAME: watering
@@ -41,16 +42,31 @@ jobs:
 
       - name: Init roles and extensions
         run: |
-          psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 <<'SQL'
-          CREATE ROLE app_user LOGIN PASSWORD 'AppPassword123!';
+          psql -h "$DB_HOST" -U postgres -d "$DB_NAME" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
+              CREATE ROLE app_user LOGIN PASSWORD 'AppPassword123!';
+            END IF;
+          END$$;
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          GRANT CONNECT ON DATABASE watering TO app_user;
+          GRANT USAGE ON SCHEMA public TO app_user;
           SQL
+        env:
+          PGPASSWORD: ${{ env.PGPASSWORD_SUPER }}
 
       - name: Apply schema
-        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/schema.sql
+        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/schema.sql
+        env:
+          PGPASSWORD: ${{ env.PGPASSWORD_APP }}
 
       - name: Load test data
-        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/test-data.sql
+        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/test-data.sql
+        env:
+          PGPASSWORD: ${{ env.PGPASSWORD_APP }}
 
       - name: Run SQL tests
-        run: psql -h localhost -U postgres -d watering -v ON_ERROR_STOP=1 -f database/tests.sql
+        run: psql -h "$DB_HOST" -U app_user -d "$DB_NAME" -v ON_ERROR_STOP=1 -f database/tests.sql
+        env:
+          PGPASSWORD: ${{ env.PGPASSWORD_APP }}
