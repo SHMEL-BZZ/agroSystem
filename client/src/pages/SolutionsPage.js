@@ -52,13 +52,17 @@ const SolutionsPage = () => {
     const confirmDeleteTank = () => {
         setTanks((prev) => {
             const filtered = prev.filter((t) => t.id !== tankToDelete);
+
+            if (tankToDelete === activeTankId && filtered.length > 0) {
+                setActiveTankId(filtered[0].id);
+            }
+
             return filtered.map((t, i) => ({
                 ...t,
                 name: `Бак ${i + 1}`,
             }));
         });
 
-        setActiveTankId((current) => (current === tankToDelete ? 1 : current));
         setTankToDelete(null);
     };
 
