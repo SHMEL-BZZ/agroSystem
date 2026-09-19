@@ -439,7 +439,7 @@ CREATE TABLE public."пользователи" (
 );
 
 
-ALTER TABLE public."пользователи" OWNER TO postgres;
+--ALTER TABLE public."пользователи" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."пользователи_id_пользователя_seq"
@@ -467,7 +467,7 @@ CREATE TABLE public."состав_раствора" (
 );
 
 
-ALTER TABLE public."состав_раствора" OWNER TO postgres;
+--ALTER TABLE public."состав_раствора" OWNER TO postgres;
 
 
 CREATE SEQUENCE public."состав_раствора_id_состава_seq"
