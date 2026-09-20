@@ -23,6 +23,9 @@ const RegisterPage = () => {
             return;
         }
         console.log('Регистрация:', form);
+
+        localStorage.setItem('username', form.login);
+
         navigate('/home');
     };
 

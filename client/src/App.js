@@ -1,7 +1,5 @@
-// для запуска client части, команда npm start в папке client в терминале
-
 // client/src/App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     BrowserRouter as Router,
     Routes,
@@ -25,29 +23,45 @@ const AppLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+    const [username, setUsername] = useState('');
+
     const hideLogout =
         location.pathname === '/login' || location.pathname === '/register';
+
+    // Получаем имя пользователя при каждом изменении маршрута
+    useEffect(() => {
+        const stored = localStorage.getItem('username');
+        setUsername(stored || '');
+    }, [location.pathname]);
 
     const askLogout = () => setIsLogoutConfirmOpen(true);
     const cancelLogout = () => setIsLogoutConfirmOpen(false);
 
     const confirmLogout = () => {
+        localStorage.removeItem('username');
+        setUsername('');
         setIsLogoutConfirmOpen(false);
         navigate('/login');
     };
 
     return (
         <>
-            {!hideLogout && (
-                <button
-                    type="button"
-                    className="global-logout"
-                    onClick={askLogout}
-                    title="Выйти"
-                    aria-label="Выйти"
-                >
-                    Выйти
-                </button>
+            {/* Имя пользователя + кнопка «Выйти» — отображаются, если пользователь авторизован */}
+            {!hideLogout && username && (
+                <div className="global-user">
+                    <span className="global-user__name" title={username}>
+                        {username}
+                    </span>
+                    <button
+                        type="button"
+                        className="global-logout"
+                        onClick={askLogout}
+                        title="Выйти"
+                        aria-label="Выйти"
+                    >
+                        Выйти
+                    </button>
+                </div>
             )}
 
             {isLogoutConfirmOpen && (
@@ -62,10 +76,10 @@ const AppLayout = () => {
                             onClick={cancelLogout}
                             aria-label="Закрыть"
                         >
-                            ×
+                            ✕
                         </button>
 
-                        <div className="logout-modal__icon">⚠</div>
+                        <div className="logout-modal__icon">🚪</div>
 
                         <h3 className="logout-modal__title">
                             Выйти из аккаунта?

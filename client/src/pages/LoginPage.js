@@ -10,6 +10,8 @@ const LoginPage = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log('Логин:', login, 'Пароль:', password);
+        localStorage.setItem('username', login);
+
         navigate('/home');
     };
 
