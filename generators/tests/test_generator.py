@@ -25,12 +25,11 @@ def test_save_to_database_insert(clean_db):
     row = cursor.fetchone()
     assert row is not None, "Запись не найдена в БД"
     assert row[0] == 1
-    assert row[1] == data['temp']
+    assert float(row[1]) == data['temp']
     assert row[2] == data['weather']
-    assert row[3] == data['humidity']
-    assert row[4] == data['ec']
-    assert row[5] == data['ph']
-
+    assert float(row[3]) == data['humidity']
+    assert float(row[4]) == data['ec']
+    assert float(row[5]) == data['ph']
 
 def test_save_to_database_upsert(clean_db):
     """Повторная вставка за тот же день обновляет запись."""
