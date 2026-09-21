@@ -2,15 +2,8 @@ import psycopg2
 import random
 from datetime import datetime, date
 import time
-import sys
 
-DB_CONFIG = {
-    'host': '172.25.25.97',
-    'port': 5432,
-    'database': 'watering',
-    'user': 'app_user',
-    'password': 'AppPassword123!'
-}
+from config import get_db_config  
 
 SCENARIOS = {
     1: {
@@ -96,75 +89,55 @@ def generate_sensor_data(valve_id, scenario_config):
         'weather': weather
     }
 
-def save_to_database(valve_id, data):
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        
-        query = """
-            INSERT INTO ежедневные_условия 
-            (id_клапана, дата, температура_по_дню, погода, ср_влажность, ср_электропроводность, ср_ph)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id_клапана, дата) DO UPDATE SET
-                температура_по_дню = EXCLUDED.температура_по_дню,
-                погода = EXCLUDED.погода,
-                ср_влажность = EXCLUDED.ср_влажность,
-                ср_электропроводность = EXCLUDED.ср_электропроводность,
-                ср_ph = EXCLUDED.ср_ph;
-        """
-        
-        cursor.execute(query, (
-            valve_id,
-            date.today(),
-            data['temp'],
-            data['weather'],
-            data['humidity'],
-            data['ec'],
-            data['ph']
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        print(f"Сохранено: клапан {valve_id}")
-        
-    except Exception as e:
-        print(f"Ошибка сохранения для клапана {valve_id}: {e}")
+def save_to_database(cursor, valve_id, data):
+    query = """
+        INSERT INTO ежедневные_условия 
+        (id_клапана, дата, температура_по_дню, погода, ср_влажность, ср_электропроводность, ср_ph)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (id_клапана, дата) DO UPDATE SET
+            температура_по_дню = EXCLUDED.температура_по_дню,
+            погода = EXCLUDED.погода,
+            ср_влажность = EXCLUDED.ср_влажность,
+            ср_электропроводность = EXCLUDED.ср_электропроводность,
+            ср_ph = EXCLUDED.ср_ph;
+    """
+    cursor.execute(query, (
+        valve_id, date.today(), data['temp'], data['weather'],
+        data['humidity'], data['ec'], data['ph']
+    ))
+
 
 def main():
     scenario_choice = choose_scenario()
     scenario_config = SCENARIOS[scenario_choice]
-    
     interval = scenario_config['interval_seconds']
     scenario_name = scenario_config['name']
-    
+
     print(f"\nГенератор запущен в режиме: {scenario_name}")
     print(f"Интервал: {interval} секунд")
-    print(f"Клапаны: {list(VALVE_OFFSETS.keys())}")
-    print("Нажмите Ctrl+C для остановки.\n")
-    
+
+    conn = psycopg2.connect(**get_db_config())
+    cursor = conn.cursor()
     cycle_count = 0
-    
+
     try:
         while True:
             cycle_count += 1
             print(f"\nЦикл {cycle_count} ({datetime.now().strftime('%H:%M:%S')})")
-            
+
             for valve_id in VALVE_OFFSETS.keys():
                 data = generate_sensor_data(valve_id, scenario_config)
-                save_to_database(valve_id, data)
-            
-            if interval >= 60:
-                print(f"Ожидание {interval // 60} минут до следующего цикла...")
-            else:
-                print(f"Ожидание {interval} секунд...")
-            
+                save_to_database(cursor, valve_id, data)
+                print(f"Сохранено: клапан {valve_id}")
+
+            conn.commit()
             time.sleep(interval)
-            
+
     except KeyboardInterrupt:
-        print("\nГенератор остановлен пользователем.")
-        print(f"Всего выполнено циклов: {cycle_count}")
+        print(f"\nОстановлен. Циклов: {cycle_count}")
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
     main()
