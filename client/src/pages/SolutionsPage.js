@@ -771,7 +771,7 @@ const SolutionsPage = () => {
     );
 
     return (
-        <div className="solutions-page">
+        <div className={'solutions-page' + (activeTab === 'info' ? ' solutions-page--no-bg' : '')}>
             <div className="solutions-tabs">
                 <button
                     className={

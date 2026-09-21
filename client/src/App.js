@@ -50,7 +50,7 @@ const AppLayout = () => {
             {!hideLogout && username && (
                 <div className="global-user">
                     <span className="global-user__name" title={username}>
-                        {username}
+                        {username.length > 10 ? `${username.slice(0, 10)}…` : username}
                     </span>
                     <button
                         type="button"
