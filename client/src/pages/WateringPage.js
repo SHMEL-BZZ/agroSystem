@@ -7,6 +7,13 @@ const WateringPage = () => {
     const [periodToDelete, setPeriodToDelete] = useState(null);
     const [activePeriodId, setActivePeriodId] = useState(1);
 
+    // Объём бака для полива (в литрах)
+    const [tankVolume, setTankVolume] = useState(2000);
+
+    // Модалка настройки объёма бака
+    const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
+    const [volumeDraft, setVolumeDraft] = useState('2000');
+
     // Баки с готовыми растворами (заглушка)
     const [sourceTanks] = useState([
         { id: 1, name: 'Бак 1' },
@@ -60,10 +67,6 @@ const WateringPage = () => {
     const activePeriod = periods.find((p) => p.id === activePeriodId);
     const activePeriodVolume = parseFloat(activePeriod?.volume) || 0;
 
-    // Баки
-    // Пока — заглушка: три бака. В будущем придут с сервера.
-    const [tankVolume, setTankVolume] = useState('');
-
     const handleSave = () => {
         console.log('Сохранено:', {
             date: selectedDate,
@@ -71,6 +74,25 @@ const WateringPage = () => {
             mixVolumes,
         });
         setStep('setup');
+    };
+
+    const openVolumeModal = () => {
+        setVolumeDraft(String(tankVolume));
+        setIsVolumeModalOpen(true);
+    };
+
+    const cancelVolumeModal = () => {
+        setIsVolumeModalOpen(false);
+    };
+
+    const confirmVolumeModal = () => {
+        const val = parseFloat(volumeDraft);
+        if (!val || val <= 0) {
+            alert('Введите корректный объём бака (больше 0).');
+            return;
+        }
+        setTankVolume(val);
+        setIsVolumeModalOpen(false);
     };
 
     const WarningBanner = ({ children }) => (
@@ -288,6 +310,20 @@ const WateringPage = () => {
                     >
                         Настройка полива
                     </button>
+
+                    <p className="watering-tank-note">
+                        Заданный объём бака для полива: <b>{tankVolume} л.</b>{' '}
+                        Для изменения{' '}
+                        <button
+                            type="button"
+                            className="watering-tank-note__link"
+                            onClick={() => setStep('distribution')}
+                        >
+                            перейти в настройки полива
+                        </button>
+                        .
+                    </p>
+
                 </div>
             </div>
         );
@@ -322,14 +358,66 @@ const WateringPage = () => {
                 <div className="distribution">
                     {/* Левая колонка — бак */}
                     <div className="distribution__left">
+                        <button
+                            type="button"
+                            className="distribution__settings"
+                            onClick={openVolumeModal}
+                            title="Настроить объём бака"
+                            aria-label="Настроить объём бака"
+                        >
+                            ⚙
+                        </button>
+
                         <div className="distribution__tank-view">
-                            <img
-                                src="/bak.png"
-                                alt="Бак"
-                                className="distribution__tank-img"
-                            />
+                            <img src="/bak.png" alt="Бак" className="distribution__tank-img" />
                         </div>
                     </div>
+
+                    {isVolumeModalOpen && (
+                        <div className="hint-modal-overlay" onClick={cancelVolumeModal}>
+                            <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    type="button"
+                                    className="hint-modal__close"
+                                    onClick={cancelVolumeModal}
+                                    aria-label="Закрыть"
+                                >
+                                    ×
+                                </button>
+                                <div className="hint-modal__icon">⚙</div>
+                                <p className="hint-modal__text">
+                                    Укажите объём бака для полива:
+                                </p>
+                                <div className="hint-modal__input-row">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={volumeDraft}
+                                        onChange={(e) => setVolumeDraft(e.target.value)}
+                                        className="hint-modal__input"
+                                        autoFocus
+                                    />
+                                    <span>л.</span>
+                                </div>
+                                <div className="hint-modal__actions">
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--secondary"
+                                        onClick={cancelVolumeModal}
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--primary"
+                                        onClick={confirmVolumeModal}
+                                    >
+                                        Сохранить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Правая колонка — литры из баков с растворами */}
                     <div className="distribution__right">

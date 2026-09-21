@@ -423,3 +423,206 @@
 .watering-date__note--future {
     color: #2A6BC7;
 }
+
+.watering-tank-note {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #472A26;
+    line-height: 1.5;
+}
+
+.watering-tank-note__link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0053D7;
+    text-decoration: underline;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+    .watering-tank-note__link:hover {
+        color: #1A4B97;
+    }
+
+.distribution__left {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.distribution__settings {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background-color: #AE6E42;
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, transform 0.15s;
+}
+
+    .distribution__settings:hover {
+        background-color: #8B4F2A;
+        transform: scale(1.08);
+    }
+
+    .distribution__settings:active {
+        transform: scale(0.95);
+    }
+
+.hint-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: hintFadeIn 0.15s ease-out;
+}
+
+.hint-modal {
+    position: relative;
+    background-color: #F2D84B;
+    color: #472A26;
+    border-radius: 16px;
+    padding: 32px 40px 28px;
+    max-width: 420px;
+    width: calc(100% - 40px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    animation: hintPopIn 0.2s ease-out;
+}
+
+.hint-modal__close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #472A26;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+    .hint-modal__close:hover {
+        background-color: rgba(71, 42, 38, 0.12);
+    }
+
+.hint-modal__icon {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.hint-modal__text {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #472A26;
+}
+
+.hint-modal__input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0 4px;
+}
+
+.hint-modal__input {
+    width: 120px;
+    padding: 10px 12px;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #472A26;
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+    .hint-modal__input:focus {
+        border-color: #AE6E42;
+    }
+
+.hint-modal__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.hint-modal__btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.hint-modal__btn--secondary {
+    background-color: rgba(71, 42, 38, 0.12);
+    color: #472A26;
+}
+
+    .hint-modal__btn--secondary:hover {
+        background-color: rgba(71, 42, 38, 0.2);
+    }
+
+.hint-modal__btn--primary {
+    background-color: #7EA6D9;
+    color: #fff;
+}
+
+    .hint-modal__btn--primary:hover {
+        background-color: #6B93C4;
+    }
+
+.hint-modal__btn:active {
+    transform: scale(0.97);
+}
+
+@keyframes hintFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes hintPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
