@@ -3,3 +3,6 @@ node_modules/
 .idea/
 server/.env
 *.log
+*.sqlite
+/client/.vs
+
