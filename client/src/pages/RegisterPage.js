@@ -1,32 +1,42 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { registration } from '../http/userAPI';
+import { Context } from '../index';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
     const [form, setForm] = useState({
         login: '',
-        email: '',
         password: '',
         confirmPassword: '',
     });
+    const { user } = useContext(Context);
     const navigate = useNavigate();
 
-    //обработчик для всех полей
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
         if (form.password !== form.confirmPassword) {
             alert('Пароли не совпадают!');
             return;
         }
-        console.log('Регистрация:', form);
 
-        localStorage.setItem('username', form.login);
+        try {
+            const decodedUser = await registration(form.login, form.password);
 
-        navigate('/home');
+            user.setUser(decodedUser);
+            user.setIsAuth(true);
+            localStorage.setItem('username', form.login);
+
+            navigate('/home');
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || 'Ошибка регистрации');
+        }
     };
 
     return (
@@ -40,15 +50,6 @@ const RegisterPage = () => {
                         name="login"
                         placeholder="Логин"
                         value={form.login}
-                        onChange={handleChange}
-                        className="auth-input"
-                        required
-                    />
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Почта"
-                        value={form.email}
                         onChange={handleChange}
                         className="auth-input"
                         required

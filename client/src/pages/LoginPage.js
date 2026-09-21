@@ -1,18 +1,36 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { login as loginRequest } from '../http/userAPI';
+import { Context } from '../index';
 import './LoginPage.css';
 
 const LoginPage = () => {
-    const [login, setLogin] = useState('');
-    const [password, setPassword] = useState('');
+    const [form, setForm] = useState({
+        login: '',
+        password: '',
+    });
+    const { user } = useContext(Context);
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Логин:', login, 'Пароль:', password);
-        localStorage.setItem('username', login);
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
 
-        navigate('/home');
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const decodedUser = await loginRequest(form.login, form.password);
+
+            user.setUser(decodedUser);
+            user.setIsAuth(true);
+            localStorage.setItem('username', form.login);
+
+            navigate('/home');
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || 'Ошибка входа');
+        }
     };
 
     return (
@@ -23,17 +41,19 @@ const LoginPage = () => {
                 <form onSubmit={handleSubmit} className="auth-form">
                     <input
                         type="text"
+                        name="login"
                         placeholder="Логин"
-                        value={login}
-                        onChange={(e) => setLogin(e.target.value)}
+                        value={form.login}
+                        onChange={handleChange}
                         className="auth-input"
                         required
                     />
                     <input
                         type="password"
+                        name="password"
                         placeholder="Пароль"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={form.password}
+                        onChange={handleChange}
                         className="auth-input"
                         required
                     />
