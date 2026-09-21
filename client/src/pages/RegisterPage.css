@@ -1,0 +1,9 @@
+.auth-page--right {
+    background-image: url('../../public/traktor.png');
+    justify-content: flex-end;
+}
+
+    .auth-page--right .auth-card {
+        margin-left: 0;
+        margin-right: 10%;
+    }
