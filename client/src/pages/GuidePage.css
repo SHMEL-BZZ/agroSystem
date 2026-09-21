@@ -38,7 +38,13 @@
     color: #472A26;
     font-size: 1.05rem;
     line-height: 1.8;
+    list-style: decimal;
 }
+
+    .guide-toc__list li::marker {
+        color: #AE6E42;
+        font-weight: 700;
+    }
 
 .guide-toc__link {
     color: #0053D7;
