@@ -1,0 +1,376 @@
+.valves-page {
+    display: flex;
+    gap: 40px;
+    padding: 40px 60px;
+    min-height: calc(100vh - 80px);
+    box-sizing: border-box;
+    background-color: #A4AF51;
+    background-image: linear-gradient(rgba(164, 175, 81, 0.3), rgba(164, 175, 81, 0.3)), url('../../public/fon.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    align-items: stretch;
+}
+
+/* Левая панель — список клапанов */
+.valves-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: #FEF1E0;
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 280px;
+    flex-shrink: 0;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.valves-sidebar__item {
+    text-align: left;
+    background-color: #FEF1E0;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #472A26;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+    .valves-sidebar__item:hover {
+        background-color: #f3e6d2;
+    }
+
+.valves-sidebar__item--active {
+    background-color: #AE6E42;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Правая часть */
+.valves-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background-color: #FEF1E0;
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.valves-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.valves-title {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #472A26;
+    border-bottom: 2px solid #472A26;
+    padding-bottom: 10px;
+    flex: 1;
+}
+
+.valves-add-btn {
+    background-color: #7EA6D9;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+    .valves-add-btn:hover {
+        background-color: #6B93C4;
+    }
+
+    .valves-add-btn:active {
+        transform: scale(0.97);
+    }
+
+/* Список теплиц */
+.valves-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.valves-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background-color: #fff;
+    border: 2px solid #472A26;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 1.05rem;
+    color: #472A26;
+}
+
+.valves-item__name {
+    flex: 1;
+}
+
+.valves-item__remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(174, 110, 66, 0.15);
+    color: #AE6E42;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+    .valves-item__remove:hover {
+        background-color: #AE6E42;
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+.valves-empty {
+    background-color: #FFF6DC;
+    border-left: 4px solid #E0A93B;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 1rem;
+    color: #472A26;
+    font-style: italic;
+}
+
+/* Модалки */
+.valves-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: valvesFadeIn 0.15s ease-out;
+}
+
+.valves-modal {
+    position: relative;
+    background-color: #F2D84B;
+    color: #472A26;
+    border-radius: 16px;
+    padding: 32px 40px 28px;
+    max-width: 460px;
+    width: calc(100% - 40px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    animation: valvesPopIn 0.2s ease-out;
+}
+
+.valves-modal__close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #472A26;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+    .valves-modal__close:hover {
+        background-color: rgba(71, 42, 38, 0.12);
+    }
+
+.valves-modal__icon {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.valves-modal__title {
+    margin: 0 0 16px 0;
+    font-size: 1.3rem;
+    color: #472A26;
+}
+
+.valves-modal__text {
+    margin: 0 0 22px 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #472A26;
+}
+
+/* Переключатель режима */
+.valves-modal__tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.valves-modal__tab {
+    background: rgba(71, 42, 38, 0.1);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #472A26;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+    .valves-modal__tab:hover {
+        background: rgba(71, 42, 38, 0.18);
+    }
+
+.valves-modal__tab--active {
+    background: #AE6E42;
+    color: #fff;
+}
+
+.valves-modal__tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Тело модалки */
+.valves-modal__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    margin-bottom: 8px;
+}
+
+.valves-modal__label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #472A26;
+}
+
+.valves-modal__select,
+.valves-modal__input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #472A26;
+    font-size: 1rem;
+    outline: none;
+    box-sizing: border-box;
+}
+
+    .valves-modal__select:focus,
+    .valves-modal__input:focus {
+        border-color: #AE6E42;
+    }
+
+.valves-modal__note {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #6E3813;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Кнопки */
+.valves-modal__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.valves-modal__btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.valves-modal__btn--secondary {
+    background-color: rgba(71, 42, 38, 0.12);
+    color: #472A26;
+}
+
+    .valves-modal__btn--secondary:hover {
+        background-color: rgba(71, 42, 38, 0.2);
+    }
+
+.valves-modal__btn--primary {
+    background-color: #7EA6D9;
+    color: #fff;
+}
+
+    .valves-modal__btn--primary:hover {
+        background-color: #6B93C4;
+    }
+
+.valves-modal__btn--danger {
+    background-color: #C94F3D;
+    color: #fff;
+}
+
+    .valves-modal__btn--danger:hover {
+        background-color: #AE3E2E;
+    }
+
+.valves-modal__btn:active {
+    transform: scale(0.97);
+}
+
+@keyframes valvesFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes valvesPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 900px) {
+    .valves-page {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .valves-sidebar {
+        width: 100%;
+    }
+}

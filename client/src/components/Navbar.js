@@ -16,6 +16,7 @@ const Navbar = () => {
                 <NavLink to="/watering" className="nav-item">Полив</NavLink>
                 <NavLink to="/solutions" className="nav-item">Растворы</NavLink>
                 <NavLink to="/charts" className="nav-item">Графики</NavLink>
+                <NavLink to="/valves" className="nav-item">Клапаны</NavLink>
             </nav>
         </div>
     );
