@@ -726,7 +726,6 @@
     }
 }
 
-/* ─── Адаптив ─── */
 @media (max-width: 1000px) {
     .distribution {
         flex-direction: column;
@@ -737,4 +736,156 @@
     .distribution__left {
         width: 100%;
     }
+}
+
+.valves-block {
+    margin-top: 40px;
+    padding: 24px 28px;
+    background-color: #FFFFFF;
+    border-radius: 16px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.valves-block__title {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #333;
+    font-weight: 700;
+}
+
+.valves-block__subtitle {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #6E3813;
+    line-height: 1.5;
+}
+
+.valves-block__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.valves-block__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background-color: #FEF1E0;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.valves-block__row--enabled {
+    border-color: #AE6E42;
+    background-color: #FFF6DC;
+}
+
+.valves-block__toggle {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+    .valves-block__toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+.valves-block__toggle-slider {
+    position: absolute;
+    inset: 0;
+    background-color: #bbb;
+    border-radius: 26px;
+    transition: background-color 0.2s;
+}
+
+    .valves-block__toggle-slider::before {
+        content: '';
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        top: 3px;
+        background-color: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+.valves-block__toggle input:checked + .valves-block__toggle-slider {
+    background-color: #AE6E42;
+}
+
+    .valves-block__toggle input:checked + .valves-block__toggle-slider::before {
+        transform: translateX(20px);
+    }
+
+.valves-block__name {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #472A26;
+}
+
+.valves-block__input {
+    width: 120px;
+    background-color: #fff;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: #472A26;
+    outline: none;
+    text-align: center;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+    .valves-block__input:focus {
+        border-color: #AE6E42;
+    }
+
+    .valves-block__input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f3f3f3;
+    }
+
+.valves-block__unit {
+    font-size: 0.95rem;
+    color: #333;
+    min-width: 24px;
+}
+
+.valves-block__total {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: #472A26;
+    background-color: #FFF6DC;
+    border-left: 4px solid #E0A93B;
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+
+.valves-block__warning {
+    padding: 10px 14px;
+    background-color: #FCE9E6;
+    border-left: 4px solid #C94F3D;
+    color: #7C2E22;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-radius: 8px;
+}
+
+.valves-block .watering-button {
+    margin: 8px auto 0;
 }

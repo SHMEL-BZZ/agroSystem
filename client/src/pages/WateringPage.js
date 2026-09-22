@@ -3,6 +3,18 @@ import './WateringPage.css';
 
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
+
+    // Список клапанов (заглушка)
+    const [valves] = useState([
+        { id: 1, name: 'Клапан 1' },
+        { id: 2, name: 'Клапан 2' },
+        { id: 3, name: 'Клапан 3' },
+    ]);
+
+    // Настройки клапанов по периодам:
+    // { [periodId]: { [valveId]: { enabled: bool, volume: string } } }
+    const [valveSettingsByPeriod, setValveSettingsByPeriod] = useState({});
+
     // Период, который пользователь собирается удалить (null — модалка закрыта)
     const [periodToDelete, setPeriodToDelete] = useState(null);
     const [activePeriodId, setActivePeriodId] = useState(1);
@@ -108,6 +120,93 @@ const WateringPage = () => {
         setPeriods((prev) =>
             prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
         );
+    };
+
+    // Получить настройку клапана для активного периода (или значение по умолчанию)
+    const getValveSetting = (valveId) => {
+        const period = valveSettingsByPeriod[activePeriodId] || {};
+        return period[valveId] || { enabled: false, volume: '' };
+    };
+
+    // Переключить клапан вкл/выкл
+    const toggleValve = (valveId) => {
+        setValveSettingsByPeriod((prev) => {
+            const period = prev[activePeriodId] || {};
+            const current = period[valveId] || { enabled: false, volume: '' };
+            return {
+                ...prev,
+                [activePeriodId]: {
+                    ...period,
+                    [valveId]: { ...current, enabled: !current.enabled },
+                },
+            };
+        });
+    };
+
+    // Изменить объём клапана
+    const updateValveVolume = (valveId, value) => {
+        // Жёсткая обрезка по объёму периода
+        const num = parseFloat(value);
+        if (!isNaN(num) && num > activePeriodVolume) {
+            value = String(activePeriodVolume);
+        }
+        if (!isNaN(num) && num < 0) {
+            value = '0';
+        }
+
+        setValveSettingsByPeriod((prev) => {
+            const period = prev[activePeriodId] || {};
+            const current = period[valveId] || { enabled: true, volume: '' };
+            return {
+                ...prev,
+                [activePeriodId]: {
+                    ...period,
+                    [valveId]: { ...current, volume: value },
+                },
+            };
+        });
+    };
+
+    // Сумма объёмов по включённым клапанам активного периода
+    const totalValveVolume = (() => {
+        const period = valveSettingsByPeriod[activePeriodId] || {};
+        return Object.values(period).reduce((sum, v) => {
+            if (!v.enabled) return sum;
+            const n = parseFloat(v.volume);
+            return sum + (isNaN(n) ? 0 : n);
+        }, 0);
+    })();
+
+    // Превышение объёма периода по клапанам
+    const exceedsValveVolume = totalValveVolume > activePeriodVolume;
+    const valveOverflow = Math.max(0, totalValveVolume - activePeriodVolume);
+
+    const handleSaveValves = () => {
+        if (exceedsValveVolume) {
+            alert(
+                `Превышен объём периода. Объём периода: ${activePeriodVolume} л, `
+                + `а распределено по клапанам: ${totalValveVolume.toFixed(2)} л. `
+                + `Уменьшите объёмы.`
+            );
+            return;
+        }
+
+        const period = valveSettingsByPeriod[activePeriodId] || {};
+        const enabledValves = valves
+            .map((v) => ({
+                id: v.id,
+                name: v.name,
+                enabled: period[v.id]?.enabled || false,
+                volume: parseFloat(period[v.id]?.volume) || 0,
+            }))
+            .filter((v) => v.enabled);
+
+        console.log('Сохранено распределение по клапанам:', {
+            periodId: activePeriodId,
+            periodName: activePeriod?.name,
+            totalVolume: totalValveVolume,
+            valves: enabledValves,
+        });
     };
 
     const handleSave = () => {
@@ -638,6 +737,86 @@ const WateringPage = () => {
                             Растворы из этих баков смешиваются в баке для полива.
                         </p>
                     </div>
+                </div>
+
+                {/* ─── Настройка клапанов ─── */}
+                <div className="valves-block">
+                    <h2 className="valves-block__title">Настройка клапанов</h2>
+
+                    <p className="valves-block__subtitle">
+                        Распределите объём по клапанам. Сумма по включённым клапанам
+                        не должна превышать объём периода ({activePeriodVolume} л).
+                    </p>
+
+                    <div className="valves-block__list">
+                        {valves.map((valve) => {
+                            const setting = getValveSetting(valve.id);
+                            return (
+                                <div
+                                    key={valve.id}
+                                    className={
+                                        'valves-block__row' +
+                                        (setting.enabled ? ' valves-block__row--enabled' : '')
+                                    }
+                                >
+                                    <label className="valves-block__toggle">
+                                        <input
+                                            type="checkbox"
+                                            checked={setting.enabled}
+                                            onChange={() => toggleValve(valve.id)}
+                                        />
+                                        <span className="valves-block__toggle-slider" />
+                                    </label>
+
+                                    <span className="valves-block__name">{valve.name}</span>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max={activePeriodVolume}
+                                        step="0.01"
+                                        className="valves-block__input"
+                                        placeholder={`до ${activePeriodVolume}`}
+                                        value={setting.volume}
+                                        disabled={!setting.enabled}
+                                        onChange={(e) =>
+                                            updateValveVolume(valve.id, e.target.value)
+                                        }
+                                    />
+                                    <span className="valves-block__unit">л.</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="valves-block__total">
+                        Итого по клапанам: <b>{totalValveVolume.toFixed(2)} л</b>
+                        {' из '}
+                        <b>{activePeriodVolume} л</b>
+                    </div>
+
+                    {exceedsValveVolume && (
+                        <div className="valves-block__warning">
+                            <b>⚠ Превышен объём периода.</b> Задано{' '}
+                            <b>{activePeriodVolume} л</b>, а распределено по клапанам{' '}
+                            <b>{totalValveVolume.toFixed(2)} л</b>. Уменьшите объёмы
+                            на <b>{valveOverflow.toFixed(2)} л</b>.
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        className="watering-button"
+                        onClick={handleSaveValves}
+                        disabled={exceedsValveVolume}
+                        title={
+                            exceedsValveVolume
+                                ? 'Превышен объём периода'
+                                : 'Сохранить распределение по клапанам'
+                        }
+                    >
+                        Сохранить
+                    </button>
                 </div>
 
                 {/* Кнопки снизу */}
