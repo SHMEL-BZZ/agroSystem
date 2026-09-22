@@ -1,4 +1,4 @@
-.watering-page {
+﻿.watering-page {
     padding: 5px 60px 40px;
     min-height: calc(100vh - 80px);
     box-sizing: border-box;
@@ -63,6 +63,10 @@
     font-style: italic;
 }
 
+.watering-date__note--future {
+    color: #2A6BC7;
+}
+
 .watering-table-wrapper {
     overflow-x: auto;
     margin-bottom: 28px;
@@ -106,6 +110,15 @@
         cursor: not-allowed;
     }
 
+.watering-table__value {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #472A26;
+}
+
 .watering-table__add-cell {
     text-align: center;
     width: 60px;
@@ -128,6 +141,38 @@
     .watering-table__add:hover {
         background-color: #472A26;
         color: #FEF1E0;
+    }
+
+.watering-table__head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+}
+
+.watering-table__remove {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(174, 110, 66, 0.15);
+    color: #AE6E42;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+    .watering-table__remove:hover {
+        background-color: #AE6E42;
+        color: #fff;
+        transform: scale(1.1);
     }
 
 .watering-button {
@@ -166,6 +211,15 @@
         background-color: #aaa;
     }
 
+.watering-button--danger {
+    background-color: #C94F3D;
+    color: #fff;
+}
+
+    .watering-button--danger:hover {
+        background-color: #AE3E2E;
+    }
+
 .warning-banner {
     display: flex;
     align-items: center;
@@ -186,6 +240,32 @@
     flex-shrink: 0;
 }
 
+/* ─── Плашка под кнопкой «Настройка полива» ─── */
+.watering-tank-note {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #472A26;
+    line-height: 1.5;
+}
+
+.watering-tank-note__link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0053D7;
+    text-decoration: underline;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+    .watering-tank-note__link:hover {
+        color: #1A4B97;
+    }
+
+/* ─── Шаг 2: распределение ─── */
 .distribution {
     display: flex;
     gap: 60px;
@@ -194,6 +274,7 @@
 }
 
 .distribution__left {
+    position: relative;
     flex: 1;
     display: flex;
     justify-content: center;
@@ -209,6 +290,35 @@
     height: auto;
     display: block;
 }
+
+.distribution__settings {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background-color: #AE6E42;
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, transform 0.15s;
+}
+
+    .distribution__settings:hover {
+        background-color: #8B4F2A;
+        transform: scale(1.08);
+    }
+
+    .distribution__settings:active {
+        transform: scale(0.95);
+    }
 
 .distribution__right {
     flex: 1;
@@ -237,6 +347,10 @@
     font-weight: 500;
 }
 
+.distribution__label--long {
+    min-width: 260px;
+}
+
 .distribution__input {
     width: 140px;
     background-color: #FEF1E0;
@@ -246,11 +360,22 @@
     font-size: 1rem;
     color: #472A26;
     outline: none;
+    box-sizing: border-box;
 }
 
     .distribution__input:focus {
         border-color: #AE6E42;
     }
+
+.distribution__input--count {
+    width: 100px;
+    text-align: center;
+}
+
+.distribution__input--invalid {
+    border-color: #C94F3D !important;
+    background-color: #FCE9E6;
+}
 
 .distribution__unit {
     font-size: 1rem;
@@ -272,6 +397,84 @@
     line-height: 1.4;
 }
 
+/* ─── Строки баков ─── */
+.distribution__tanks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.distribution__tank-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+}
+
+.distribution__select {
+    flex: 0 0 160px;
+    width: 160px;
+    background-color: #FEF1E0;
+    border: 2px solid #472A26;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: #472A26;
+    outline: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+    .distribution__select:focus {
+        border-color: #AE6E42;
+        box-shadow: 0 0 0 3px rgba(174, 110, 66, 0.15);
+    }
+
+.distribution__tank-contents {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: #6E3813;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.distribution__tank-row .distribution__input {
+    width: 110px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+/* ─── Итого ─── */
+.distribution__total {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: #472A26;
+    background-color: #FFF6DC;
+    border-left: 4px solid #E0A93B;
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+
+/* ─── Предупреждение о превышении ─── */
+.distribution__warning {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background-color: #FCE9E6;
+    border-left: 4px solid #C94F3D;
+    color: #7C2E22;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-radius: 8px;
+}
+
+/* ─── Выбор периода ─── */
 .period-selector {
     display: flex;
     align-items: center;
@@ -309,38 +512,7 @@
     font-weight: 600;
 }
 
-.watering-table__head {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    position: relative;
-}
-
-.watering-table__remove {
-    width: 22px;
-    height: 22px;
-    border: none;
-    border-radius: 50%;
-    background-color: rgba(174, 110, 66, 0.15);
-    color: #AE6E42;
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: background-color 0.2s, color 0.2s, transform 0.15s;
-}
-
-    .watering-table__remove:hover {
-        background-color: #AE6E42;
-        color: #fff;
-        transform: scale(1.1);
-    }
-
+/* ─── Модалка удаления периода ─── */
 .confirm-overlay {
     position: fixed;
     inset: 0;
@@ -389,15 +561,6 @@
     gap: 12px;
 }
 
-.watering-button--danger {
-    background-color: #C94F3D;
-    color: #fff;
-}
-
-    .watering-button--danger:hover {
-        background-color: #AE3E2E;
-    }
-
 @keyframes confirmFadeIn {
     from {
         opacity: 0;
@@ -420,71 +583,7 @@
     }
 }
 
-.watering-date__note--future {
-    color: #2A6BC7;
-}
-
-.watering-tank-note {
-    margin-top: 16px;
-    text-align: center;
-    font-size: 0.95rem;
-    color: #472A26;
-    line-height: 1.5;
-}
-
-.watering-tank-note__link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: #0053D7;
-    text-decoration: underline;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: inherit;
-    font-family: inherit;
-}
-
-    .watering-tank-note__link:hover {
-        color: #1A4B97;
-    }
-
-.distribution__left {
-    position: relative;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.distribution__settings {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 50%;
-    background-color: #AE6E42;
-    color: #fff;
-    font-size: 1.4rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.2s, transform 0.15s;
-}
-
-    .distribution__settings:hover {
-        background-color: #8B4F2A;
-        transform: scale(1.08);
-    }
-
-    .distribution__settings:active {
-        transform: scale(0.95);
-    }
-
+/* ─── Модалка настройки объёма бака ─── */
 .hint-modal-overlay {
     position: fixed;
     inset: 0;
@@ -624,5 +723,18 @@
     to {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+/* ─── Адаптив ─── */
+@media (max-width: 1000px) {
+    .distribution {
+        flex-direction: column;
+        gap: 30px;
+        align-items: stretch;
+    }
+
+    .distribution__left {
+        width: 100%;
     }
 }
