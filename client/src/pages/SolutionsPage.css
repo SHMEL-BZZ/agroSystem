@@ -906,3 +906,8 @@
     font-style: italic;
     opacity: 0.8;
 }
+
+.solutions-page--no-bg {
+    background-image: none;
+    background-color: #A4AF51;
+}

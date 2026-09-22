@@ -1,93 +1,102 @@
-﻿const mockDrainage = [
-    { time: '06:00', watering: 120, drainage: 30, drainagePercent: 25 },
-    { time: '08:00', watering: 140, drainage: 35, drainagePercent: 25 },
-    { time: '10:00', watering: 150, drainage: 45, drainagePercent: 30 },
-    { time: '12:00', watering: 160, drainage: 48, drainagePercent: 30 },
-    { time: '14:00', watering: 150, drainage: 42, drainagePercent: 28 },
-    { time: '16:00', watering: 130, drainage: 33, drainagePercent: 25 },
-    { time: '18:00', watering: 110, drainage: 22, drainagePercent: 20 },
+﻿const DAYS = [
+    '2026-09-15',
+    '2026-09-16',
+    '2026-09-17',
+    '2026-09-18',
+    '2026-09-19',
+    '2026-09-20',
+    '2026-09-21',
 ];
 
-const mockEcPh = [
-    { time: '06:00', feedEC: 2.1, substrateEC: 2.4, drainageEC: 2.6, feedPH: 5.8, substratePH: 6.0, drainagePH: 6.2 },
-    { time: '08:00', feedEC: 2.2, substrateEC: 2.5, drainageEC: 2.7, feedPH: 5.8, substratePH: 6.0, drainagePH: 6.3 },
-    { time: '10:00', feedEC: 2.2, substrateEC: 2.6, drainageEC: 2.8, feedPH: 5.9, substratePH: 6.1, drainagePH: 6.3 },
-    { time: '12:00', feedEC: 2.3, substrateEC: 2.6, drainageEC: 2.9, feedPH: 5.8, substratePH: 6.1, drainagePH: 6.4 },
-    { time: '14:00', feedEC: 2.2, substrateEC: 2.5, drainageEC: 2.8, feedPH: 5.8, substratePH: 6.0, drainagePH: 6.3 },
-    { time: '16:00', feedEC: 2.2, substrateEC: 2.4, drainageEC: 2.7, feedPH: 5.8, substratePH: 6.0, drainagePH: 6.2 },
-    { time: '18:00', feedEC: 2.1, substrateEC: 2.3, drainageEC: 2.5, feedPH: 5.7, substratePH: 5.9, drainagePH: 6.1 },
-];
+const TIMES = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
 
-const mockWatering = [
-    { time: '06:00', volume: 120, valve: 'A' },
-    { time: '08:00', volume: 140, valve: 'A' },
-    { time: '10:00', volume: 150, valve: 'B' },
-    { time: '12:00', volume: 160, valve: 'B' },
-    { time: '14:00', volume: 150, valve: 'A' },
-    { time: '16:00', volume: 130, valve: 'A' },
-    { time: '18:00', volume: 110, valve: 'B' },
-];
+const rnd = (base, spread) => Math.round((base + (Math.random() - 0.5) * spread) * 10) / 10;
 
-const mockStarts = [
-    { time: '06:00', duration: 4, intervalMin: 0 },
-    { time: '06:30', duration: 3, intervalMin: 30 },
-    { time: '07:00', duration: 3, intervalMin: 30 },
-    { time: '07:40', duration: 4, intervalMin: 40 },
-    { time: '08:20', duration: 3, intervalMin: 40 },
-    { time: '09:00', duration: 3, intervalMin: 40 },
-];
+const mockDrainage = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        watering: rnd(140, 40),
+        drainage: rnd(38, 15),
+        drainagePercent: rnd(27, 6),
+    }))
+);
 
-const mockFeedEc = [
-    { time: '06:00', feedEC: 2.1, targetEC: 2.2 },
-    { time: '08:00', feedEC: 2.2, targetEC: 2.2 },
-    { time: '10:00', feedEC: 2.2, targetEC: 2.2 },
-    { time: '12:00', feedEC: 2.3, targetEC: 2.2 },
-    { time: '14:00', feedEC: 2.2, targetEC: 2.2 },
-    { time: '16:00', feedEC: 2.2, targetEC: 2.2 },
-    { time: '18:00', feedEC: 2.1, targetEC: 2.2 },
-];
+const mockEcPh = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        feedEC: rnd(2.2, 0.2),
+        substrateEC: rnd(2.5, 0.3),
+        drainageEC: rnd(2.7, 0.3),
+        feedPH: rnd(5.8, 0.2),
+        substratePH: rnd(6.0, 0.2),
+        drainagePH: rnd(6.3, 0.2),
+    }))
+);
 
-const mockFeedPh = [
-    { time: '06:00', feedPH: 5.8, targetPH: 5.8 },
-    { time: '08:00', feedPH: 5.8, targetPH: 5.8 },
-    { time: '10:00', feedPH: 5.9, targetPH: 5.8 },
-    { time: '12:00', feedPH: 5.8, targetPH: 5.8 },
-    { time: '14:00', feedPH: 5.8, targetPH: 5.8 },
-    { time: '16:00', feedPH: 5.8, targetPH: 5.8 },
-    { time: '18:00', feedPH: 5.7, targetPH: 5.8 },
-];
+const mockWatering = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        volume: rnd(140, 40),
+        valve: Math.random() > 0.5 ? 'A' : 'B',
+    }))
+);
 
-const mockWaterTemp = [
-    { time: '06:00', temp: 18 },
-    { time: '08:00', temp: 19 },
-    { time: '10:00', temp: 20 },
-    { time: '12:00', temp: 21 },
-    { time: '14:00', temp: 22 },
-    { time: '16:00', temp: 21 },
-    { time: '18:00', temp: 20 },
-];
+const mockStarts = DAYS.flatMap((date) =>
+    ['06:00', '06:30', '07:00', '07:40', '08:20', '09:00', '12:00', '15:00'].map((time) => ({
+        date,
+        time,
+        duration: Math.round(rnd(3.5, 1.5)),
+        intervalMin: Math.round(rnd(30, 15)),
+    }))
+);
 
-const mockSubstrateMoisture = [
-    { time: '06:00', wc: 55 },
-    { time: '08:00', wc: 70 },
-    { time: '10:00', wc: 75 },
-    { time: '12:00', wc: 72 },
-    { time: '14:00', wc: 68 },
-    { time: '16:00', wc: 60 },
-    { time: '18:00', wc: 50 },
-    { time: '20:00', wc: 45 },
-];
+const mockFeedEc = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        feedEC: rnd(2.2, 0.2),
+        targetEC: 2.2,
+    }))
+);
 
-const mockConsumption = [
-    { time: '06:00', water: 0, fertA: 0, fertB: 0, fertC: 0 },
-    { time: '08:00', water: 5, fertA: 1.2, fertB: 1.1, fertC: 0.8 },
-    { time: '10:00', water: 11, fertA: 2.5, fertB: 2.3, fertC: 1.6 },
-    { time: '12:00', water: 18, fertA: 4.0, fertB: 3.8, fertC: 2.6 },
-    { time: '14:00', water: 25, fertA: 5.6, fertB: 5.3, fertC: 3.6 },
-    { time: '16:00', water: 31, fertA: 7.0, fertB: 6.6, fertC: 4.5 },
-    { time: '18:00', water: 36, fertA: 8.2, fertB: 7.7, fertC: 5.3 },
-];
+const mockFeedPh = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        feedPH: rnd(5.8, 0.2),
+        targetPH: 5.8,
+    }))
+);
 
+const mockWaterTemp = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        temp: rnd(20, 3),
+    }))
+);
+
+const mockSubstrateMoisture = DAYS.flatMap((date) =>
+    TIMES.map((time) => ({
+        date,
+        time,
+        wc: rnd(65, 15),
+    }))
+);
+
+const mockConsumption = DAYS.flatMap((date, dayIdx) =>
+    TIMES.map((time, i) => ({
+        date,
+        time,
+        water: dayIdx * 36 + i * 5,
+        fertA: dayIdx * 8 + i * 1.2,
+        fertB: dayIdx * 7.5 + i * 1.1,
+        fertC: dayIdx * 5 + i * 0.8,
+    }))
+);
 
 export const chartConfigs = {
     drainage: {
@@ -96,6 +105,7 @@ export const chartConfigs = {
         xLabel: 'Время',
         yLeftLabel: 'Объём, л',
         yRightLabel: 'Дренаж, %',
+        periodType: 'day',
         data: mockDrainage,
         series: [
             { key: 'watering', name: 'Полив, л', color: '#4A90E2', unit: 'л' },
@@ -110,6 +120,7 @@ export const chartConfigs = {
         xLabel: 'Время',
         yLeftLabel: 'EC, мСм/см',
         yRightLabel: 'pH',
+        periodType: 'day',
         data: mockEcPh,
         series: [
             { key: 'feedEC', name: 'EC подача', color: '#4A90E2', unit: 'мСм/см' },
@@ -126,6 +137,7 @@ export const chartConfigs = {
         xKey: 'time',
         xLabel: 'Время',
         yLeftLabel: 'Объём, л',
+        periodType: 'day',
         data: mockWatering,
         series: [{ key: 'volume', name: 'Объём, л', color: '#4A90E2', unit: 'л' }],
     },
@@ -136,6 +148,7 @@ export const chartConfigs = {
         xLabel: 'Время старта',
         yLeftLabel: 'Длительность, мин',
         yRightLabel: 'Пауза, мин',
+        periodType: 'day',
         data: mockStarts,
         series: [
             { key: 'duration', name: 'Длительность, мин', color: '#4A90E2', unit: 'мин' },
@@ -148,6 +161,7 @@ export const chartConfigs = {
         xKey: 'time',
         xLabel: 'Время',
         yLeftLabel: 'EC, мСм/см',
+        periodType: 'range',
         data: mockFeedEc,
         series: [
             { key: 'feedEC', name: 'EC фактический', color: '#4A90E2', unit: 'мСм/см' },
@@ -160,6 +174,7 @@ export const chartConfigs = {
         xKey: 'time',
         xLabel: 'Время',
         yLeftLabel: 'pH',
+        periodType: 'range',
         data: mockFeedPh,
         series: [
             { key: 'feedPH', name: 'pH фактический', color: '#9C27B0', unit: 'pH' },
@@ -172,6 +187,7 @@ export const chartConfigs = {
         xKey: 'time',
         xLabel: 'Время',
         yLeftLabel: 'Температура, °C',
+        periodType: 'range',
         data: mockWaterTemp,
         series: [{ key: 'temp', name: 'Температура', color: '#FF9800', unit: '°C' }],
     },
@@ -181,6 +197,7 @@ export const chartConfigs = {
         xKey: 'time',
         xLabel: 'Время',
         yLeftLabel: 'Влажность, %',
+        periodType: 'range',
         data: mockSubstrateMoisture,
         series: [{ key: 'wc', name: 'Влажность', color: '#2E7D32', unit: '%' }],
     },
@@ -191,6 +208,7 @@ export const chartConfigs = {
         xLabel: 'Время',
         yLeftLabel: 'Вода, м³',
         yRightLabel: 'Удобрения, л',
+        periodType: 'range',
         data: mockConsumption,
         series: [
             { key: 'water', name: 'Вода, м³', color: '#4A90E2', unit: 'м³' },
@@ -200,8 +218,60 @@ export const chartConfigs = {
         ],
     },
 };
-// "Алгоритм" получения данных по id
 
-export async function fetchChartData(chartId) {
-    return chartConfigs[chartId] || null;
+export async function fetchChartData(chartId, filters) {
+    const config = chartConfigs[chartId];
+    if (!config) return null;
+
+    const { dateFrom, dateTo } = filters || {};
+    if (!dateFrom || !dateTo) {
+        return { ...config };
+    }
+
+    const isSingleDay = dateFrom === dateTo;
+
+    if (isSingleDay) {
+        const dayData = config.data.filter((p) => p.date === dateFrom);
+
+        return {
+            ...config,
+            xKey: 'time',
+            xLabel: 'Время',
+            data: dayData,
+        };
+    }
+
+    const inRange = config.data.filter(
+        (p) => p.date >= dateFrom && p.date <= dateTo
+    );
+
+    const byDate = new Map();
+    inRange.forEach((p) => {
+        if (!byDate.has(p.date)) byDate.set(p.date, []);
+        byDate.get(p.date).push(p);
+    });
+
+    const metricKeys = config.series.map((s) => s.key);
+
+    const averaged = Array.from(byDate.entries())
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([date, points]) => {
+            const avg = { date, time: date };
+            metricKeys.forEach((key) => {
+                const values = points
+                    .map((p) => p[key])
+                    .filter((v) => typeof v === 'number' && !isNaN(v));
+                avg[key] = values.length
+                    ? Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 100) / 100
+                    : null;
+            });
+            return avg;
+        });
+
+    return {
+        ...config,
+        xKey: 'date',
+        xLabel: 'Дата',
+        data: averaged,
+    };
 }

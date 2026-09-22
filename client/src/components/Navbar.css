@@ -1,21 +1,28 @@
 .navbar {
     display: flex;
+    align-items: center;
     justify-content: center;
-    background-color: #FEF1E0;
-    padding: 1rem;
+    background-color: rgba(254, 241, 224, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 0.75rem 1.5rem;
     border-radius: 50px;
-    margin: 20px auto;
-    max-width: 800px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin: 0 auto;
+    max-width: fit-content;
+    box-sizing: border-box;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    gap: 4px;
 }
 
 .nav-item {
     text-decoration: none;
-    color: #472A26;
-    padding: 10px 20px;
-    margin: 0 5px;
+    color: #333;
+    padding: 10px 14px;
+    margin: 0 2px;
     border-radius: 30px;
     font-weight: 500;
+    font-size: 1rem;
+    white-space: nowrap;
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -23,10 +30,9 @@
         background-color: #e9ecef;
     }
 
-    /* Стиль для активной ссылки */
     .nav-item.active {
         background-color: #C8C98A;
-        color: #472A26;
+        color: white;
         font-weight: bold;
     }
 
