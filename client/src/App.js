@@ -17,6 +17,8 @@ import WateringPage from './pages/WateringPage';
 import SolutionsPage from './pages/SolutionsPage';
 import ChartsPage from './pages/ChartsPage';
 import Navbar from './components/Navbar';
+import ValvesPage from './pages/ValvesPage';
+import DataCollectionPage from './pages/DataCollectionPage';
 import './App.css';
 
 const AppLayout = () => {
@@ -50,7 +52,7 @@ const AppLayout = () => {
             {!hideLogout && username && (
                 <div className="global-user">
                     <span className="global-user__name" title={username}>
-                        {username}
+                        {username.length > 10 ? `${username.slice(0, 10)}…` : username}
                     </span>
                     <button
                         type="button"
@@ -113,7 +115,8 @@ const AppLayout = () => {
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-
+                <Route path="/valves" element={<><Navbar /><ValvesPage /></>} />
+                <Route path="/data" element={<><Navbar /><DataCollectionPage /></>} />
                 <Route path="/home" element={<><Navbar /><HomePage /></>} />
                 <Route path="/guide" element={<><Navbar /><GuidePage /></>} />
                 <Route path="/watering" element={<><Navbar /><WateringPage /></>} />

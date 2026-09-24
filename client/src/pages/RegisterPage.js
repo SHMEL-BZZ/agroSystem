@@ -55,6 +55,15 @@ const RegisterPage = () => {
                         required
                     />
                     <input
+                        type="email"
+                        name="email"
+                        placeholder="Почта"
+                        value={form.email}
+                        onChange={handleChange}
+                        className="auth-input"
+                        required
+                    />
+                    <input
                         type="password"
                         name="password"
                         placeholder="Пароль"

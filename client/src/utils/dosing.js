@@ -1,21 +1,21 @@
+п»ї// ============================================================
+// Р Р°СЃС‡С‘С‚ РґРѕР·РёСЂРѕРІРѕРє РґРѕР±Р°РІРѕРє
 // ============================================================
-// Расчёт дозировок добавок
-// ============================================================
-// dosePerLiter в solutionsInfo имеет вид:
-//   '1–2 г на 1 л воды (для маточного раствора — по расчёту EC).'
-//   '0.5–1 г монофосфата калия на 1 л; кислоты — по титрованию...'
-//   '1–3 мл на 1 л воды (0.1–0.3%).'
-//   '0.1–0.5 мл на 1 л воды — до достижения pH 5.5–6.5...'
-//   'Дозу кислоты подбирают титрованием; ориентир — 0.1–0.3 мл кислоты на 1 л...'
+// dosePerLiter РІ solutionsInfo РёРјРµРµС‚ РІРёРґ:
+//   '1вЂ“2 Рі РЅР° 1 Р» РІРѕРґС‹ (РґР»СЏ РјР°С‚РѕС‡РЅРѕРіРѕ СЂР°СЃС‚РІРѕСЂР° вЂ” РїРѕ СЂР°СЃС‡С‘С‚Сѓ EC).'
+//   '0.5вЂ“1 Рі РјРѕРЅРѕС„РѕСЃС„Р°С‚Р° РєР°Р»РёСЏ РЅР° 1 Р»; РєРёСЃР»РѕС‚С‹ вЂ” РїРѕ С‚РёС‚СЂРѕРІР°РЅРёСЋ...'
+//   '1вЂ“3 РјР» РЅР° 1 Р» РІРѕРґС‹ (0.1вЂ“0.3%).'
+//   '0.1вЂ“0.5 РјР» РЅР° 1 Р» РІРѕРґС‹ вЂ” РґРѕ РґРѕСЃС‚РёР¶РµРЅРёСЏ pH 5.5вЂ“6.5...'
+//   'Р”РѕР·Сѓ РєРёСЃР»РѕС‚С‹ РїРѕРґР±РёСЂР°СЋС‚ С‚РёС‚СЂРѕРІР°РЅРёРµРј; РѕСЂРёРµРЅС‚РёСЂ вЂ” 0.1вЂ“0.3 РјР» РєРёСЃР»РѕС‚С‹ РЅР° 1 Р»...'
 //
-// Мы вытаскиваем первую пару «число–число» и следующую за ней единицу
-// («мл» или «г»). Остальное игнорируем.
+// РњС‹ РІС‹С‚Р°СЃРєРёРІР°РµРј РїРµСЂРІСѓСЋ РїР°СЂСѓ В«С‡РёСЃР»РѕвЂ“С‡РёСЃР»РѕВ» Рё СЃР»РµРґСѓСЋС‰СѓСЋ Р·Р° РЅРµР№ РµРґРёРЅРёС†Сѓ
+// (В«РјР»В» РёР»Рё В«РіВ»). РћСЃС‚Р°Р»СЊРЅРѕРµ РёРіРЅРѕСЂРёСЂСѓРµРј.
 
 export function parseDosePerLiter(dosePerLiter) {
     if (!dosePerLiter) return null;
 
     const match = dosePerLiter.match(
-        /(\d+(?:[.,]\d+)?)\s*[–-]\s*(\d+(?:[.,]\d+)?)\s*(мл|г|л)/i
+        /(\d+(?:[.,]\d+)?)\s*[вЂ“-]\s*(\d+(?:[.,]\d+)?)\s*(РјР»|Рі|Р»)/i
     );
 
     if (match) {
@@ -25,7 +25,7 @@ export function parseDosePerLiter(dosePerLiter) {
         return { min, max, unit };
     }
 
-    const single = dosePerLiter.match(/(\d+(?:[.,]\d+)?)\s*(мл|г|л)/i);
+    const single = dosePerLiter.match(/(\d+(?:[.,]\d+)?)\s*(РјР»|Рі|Р»)/i);
     if (single) {
         const value = parseFloat(single[1].replace(',', '.'));
         const unit = single[2].toLowerCase();
@@ -35,14 +35,14 @@ export function parseDosePerLiter(dosePerLiter) {
     return null;
 }
 
-// Единица измерения для добавки: мл — для жидких, г — для сыпучих
+// Р•РґРёРЅРёС†Р° РёР·РјРµСЂРµРЅРёСЏ РґР»СЏ РґРѕР±Р°РІРєРё: РјР» вЂ” РґР»СЏ Р¶РёРґРєРёС…, Рі вЂ” РґР»СЏ СЃС‹РїСѓС‡РёС…
 export function getUnitForForm(form) {
-    return form === 'liquid' ? 'мл' : 'г';
+    return form === 'liquid' ? 'РјР»' : 'Рі';
 }
 
-// Расчёт дозы на объём воды.
-// form — опционально: если задан, единица берётся из него (мл/г),
-// иначе — из текста dosePerLiter.
+// Р Р°СЃС‡С‘С‚ РґРѕР·С‹ РЅР° РѕР±СЉС‘Рј РІРѕРґС‹.
+// form вЂ” РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ: РµСЃР»Рё Р·Р°РґР°РЅ, РµРґРёРЅРёС†Р° Р±РµСЂС‘С‚СЃСЏ РёР· РЅРµРіРѕ (РјР»/Рі),
+// РёРЅР°С‡Рµ вЂ” РёР· С‚РµРєСЃС‚Р° dosePerLiter.
 export function calcDose(dosePerLiter, waterLiters, form) {
     const parsed = parseDosePerLiter(dosePerLiter);
     if (!parsed) return null;
@@ -59,7 +59,7 @@ export function calcDose(dosePerLiter, waterLiters, form) {
     };
 }
 
-// Проверка: попадает ли введённый объём в допустимый диапазон.
+// РџСЂРѕРІРµСЂРєР°: РїРѕРїР°РґР°РµС‚ Р»Рё РІРІРµРґС‘РЅРЅС‹Р№ РѕР±СЉС‘Рј РІ РґРѕРїСѓСЃС‚РёРјС‹Р№ РґРёР°РїР°Р·РѕРЅ.
 export function validateDose(dosePerLiter, waterLiters, enteredVolume, form) {
     const expected = calcDose(dosePerLiter, waterLiters, form);
     if (!expected) return { status: 'unknown' };
@@ -79,7 +79,7 @@ export function validateDose(dosePerLiter, waterLiters, enteredVolume, form) {
 export function formatDoseRange(range) {
     if (!range) return '';
     if (range.min === range.max) return `${round(range.min)} ${range.unit}`;
-    return `${round(range.min)}–${round(range.max)} ${range.unit}`;
+    return `${round(range.min)}вЂ“${round(range.max)} ${range.unit}`;
 }
 
 function round(n) {
