@@ -1,0 +1,36 @@
+.navbar {
+    display: flex;
+    justify-content: center;
+    background-color: #FEF1E0;
+    padding: 1rem;
+    border-radius: 50px;
+    margin: 20px auto;
+    max-width: 800px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.nav-item {
+    text-decoration: none;
+    color: #472A26;
+    padding: 10px 20px;
+    margin: 0 5px;
+    border-radius: 30px;
+    font-weight: 500;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+    .nav-item:hover {
+        background-color: #e9ecef;
+    }
+
+    /* Стиль для активной ссылки */
+    .nav-item.active {
+        background-color: #C8C98A;
+        color: #472A26;
+        font-weight: bold;
+    }
+
+.navbar-wrapper {
+    background-color: #A4AF51;
+    padding: 1rem 0;
+}

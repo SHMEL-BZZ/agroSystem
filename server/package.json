@@ -16,7 +16,6 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-fileupload": "^1.5.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0",
     "pg-hstore": "^2.3.4",
@@ -35,8 +34,5 @@
     "testMatch": [
       "**/test-*.js"
     ]
-  },
-  "directories": {
-    "test": "test"
   }
 }
