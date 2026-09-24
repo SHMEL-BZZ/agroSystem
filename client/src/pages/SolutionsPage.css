@@ -793,9 +793,7 @@
         background-color: #B7C4D6;
     }
 
-/* ============================================================
-   Объём бака под картинкой
-   ============================================================ */
+/* Объём бака под картинкой*/
 
 .tank-volume {
     width: 320px;
@@ -850,9 +848,7 @@
     color: #472A26;
 }
 
-/* ============================================================
-   Модалка создания бака
-   ============================================================ */
+/*  Модалка создания бака */
 
 .hint-modal__input-row {
     display: flex;
@@ -910,4 +906,20 @@
 .solutions-page--no-bg {
     background-image: none;
     background-color: #A4AF51;
+}
+
+/* Явная красная подсветка для переполнения */
+.mix-add__input--invalid {
+    border-color: #C94F3D !important;
+    background-color: #FCE9E6 !important;
+    box-shadow: 0 0 0 3px rgba(201, 79, 61, 0.15);
+}
+
+/* Подсказка под полем воды */
+.mix-add__overflow-hint {
+    flex-basis: 100%;
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: #C94F3D;
+    font-weight: 600;
 }
