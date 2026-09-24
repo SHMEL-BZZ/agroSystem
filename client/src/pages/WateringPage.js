@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import './WateringPage.css';
+import Toast from '../components/Toast';
 
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
@@ -10,6 +11,8 @@ const WateringPage = () => {
         { id: 2, name: 'Клапан 2' },
         { id: 3, name: 'Клапан 3' },
     ]);
+
+    const [toastMessage, setToastMessage] = useState('');
 
     // Санитайзер числового ввода: только цифры и максимум одна точка.
     // Минус, буквы, символы — отбрасываются.
@@ -239,10 +242,6 @@ const WateringPage = () => {
     const valveOverflow = Math.max(0, totalValveVolume - activePeriodVolume);
 
     const handleSaveValves = () => {
-        if (!hasAnyValveEnabled) {
-            alert('Выберите хотя бы один клапан.');
-            return;
-        }
         if (exceedsValveVolume) {
             alert(
                 `Превышен объём периода. Объём периода: ${activePeriodVolume} л, `
@@ -268,6 +267,15 @@ const WateringPage = () => {
             totalVolume: totalValveVolume,
             valves: enabledValves,
         });
+
+        // Формируем сообщение
+        const valvesList = enabledValves
+            .map((v) => `${v.name} (${v.volume} л)`)
+            .join(', ');
+
+        setToastMessage(
+            `Вы сохранили клапаны для «${activePeriod?.name}»: ${valvesList}.`
+        );
     };
 
     const handleSave = () => {
@@ -301,6 +309,11 @@ const WateringPage = () => {
             })),
             tankRowsByPeriod,
         });
+
+        setToastMessage(
+            `Настройки полива на ${selectedDate} сохранены.`
+        );
+
         setStep('setup');
     };
 
@@ -608,6 +621,7 @@ const WateringPage = () => {
                     </p>
 
                 </div>
+                <Toast message={toastMessage} onClose={() => setToastMessage('')} />
             </div>
         );
     }
@@ -935,6 +949,7 @@ const WateringPage = () => {
                     </button>
                 </div>
             </div>
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
         </div>
     );
 };

@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import Toast from '../components/Toast';
+import React, { useState, useRef, useEffect } from 'react';
 import './SolutionsPage.css';
 import SolutionsInfo from '../components/SolutionsInfo';
 import { solutionAdditives, checkCompatibility } from '../data/solutionsInfo';
@@ -23,6 +24,8 @@ const SolutionsPage = () => {
         { id: 2, name: 'Бак 2', volume: 2000, usedLiters: 0, items: [] },
         { id: 3, name: 'Бак 3', volume: 2000, usedLiters: 0, items: [] },
     ]);
+
+    const [toastMessage, setToastMessage] = useState('');
 
     const [activeTankId, setActiveTankId] = useState(tanks[0].id);
     const activeTank = tanks.find((t) => t.id === activeTankId);
@@ -472,6 +475,12 @@ const SolutionsPage = () => {
             })
         );
 
+        // Показываем тост
+        const totalAdded = newItems.reduce((sum, it) => sum + it.amount, 0);
+        setToastMessage(
+            `Вы замешали раствор в «${activeTank.name}»: добавлено ${newItems.length} компонент(ов).`
+        );
+
         setWaterLiters('');
         setAdditivesCount('');
         setAdditives([]);
@@ -901,6 +910,10 @@ const SolutionsPage = () => {
             </div>
 
             {activeTab === 'mix' ? mixContent : <SolutionsInfo />}
+            <Toast
+                message={toastMessage}
+                onClose={() => setToastMessage('')}
+            />
         </div>
     );
 };
