@@ -11,6 +11,31 @@ const WateringPage = () => {
         { id: 3, name: 'Клапан 3' },
     ]);
 
+    // Санитайзер числового ввода: только цифры и максимум одна точка.
+    // Минус, буквы, символы — отбрасываются.
+    // Точка разрешена только после первой цифры.
+    function sanitizeNumber(value) {
+        if (value === '' || value === null || value === undefined) return '';
+
+        let str = String(value);
+
+        // Убираем всё, кроме цифр и точек
+        str = str.replace(/[^0-9.]/g, '');
+
+        // Убираем ведущие точки
+        str = str.replace(/^\.+/, '');
+
+        // Оставляем только первую точку
+        const firstDot = str.indexOf('.');
+        if (firstDot !== -1) {
+            str =
+                str.slice(0, firstDot + 1) +
+                str.slice(firstDot + 1).replace(/\./g, '');
+        }
+
+        return str;
+    }
+
     // Настройки клапанов по периодам:
     // { [periodId]: { [valveId]: { enabled: bool, volume: string } } }
     const [valveSettingsByPeriod, setValveSettingsByPeriod] = useState({});
@@ -79,6 +104,24 @@ const WateringPage = () => {
     const isEditable = selectedDate >= today;
     const isPast = selectedDate < today;
 
+    // Проверка дубликатов времени старта 
+    const duplicateStartIds = (() => {
+        const map = {};
+        const dup = new Set();
+        periods.forEach((p) => {
+            if (!p.start) return;
+            if (map[p.start]) {
+                dup.add(p.id);
+                dup.add(map[p.start]);
+            } else {
+                map[p.start] = p.id;
+            }
+        });
+        return dup;
+    })();
+
+    const hasDuplicateStart = duplicateStartIds.size > 0;
+
     // Активный период
     const activePeriod = periods.find((p) => p.id === activePeriodId);
     // Объём, заданный в таблице для активного периода
@@ -106,17 +149,27 @@ const WateringPage = () => {
         ]);
     };
 
+    const MAX_DURATION_MIN = 90; // 1.5 часа
+
     const updatePeriod = (id, field, value) => {
-        // Обрезка объёма периода по объёму бака (нельзя вылить больше, чем влезает)
+        // Объём: только цифры и точка, обрезка по объёму бака
         if (field === 'volume') {
+            value = sanitizeNumber(value);
             const num = parseFloat(value);
-            if (!isNaN(num) && num > tankVolume) {
-                value = String(tankVolume);
-            }
-            if (!isNaN(num) && num < 0) {
-                value = '0';
+            if (!isNaN(num) && num > tankVolume) value = String(tankVolume);
+        }
+
+        // Длительность: только цифры, максимум 90 минут
+        if (field === 'duration') {
+            value = String(value).replace(/\D/g, '');
+            if (value !== '') {
+                value = String(parseInt(value, 10) || 0);
+                if (parseInt(value, 10) > MAX_DURATION_MIN) {
+                    value = String(MAX_DURATION_MIN);
+                }
             }
         }
+
         setPeriods((prev) =>
             prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
         );
@@ -145,13 +198,11 @@ const WateringPage = () => {
 
     // Изменить объём клапана
     const updateValveVolume = (valveId, value) => {
-        // Жёсткая обрезка по объёму периода
+        // Только цифры и точка, обрезка по объёму периода
+        value = sanitizeNumber(value);
         const num = parseFloat(value);
         if (!isNaN(num) && num > activePeriodVolume) {
             value = String(activePeriodVolume);
-        }
-        if (!isNaN(num) && num < 0) {
-            value = '0';
         }
 
         setValveSettingsByPeriod((prev) => {
@@ -177,11 +228,21 @@ const WateringPage = () => {
         }, 0);
     })();
 
+    // Есть ли хотя бы один включённый клапан для активного периода?
+    const hasAnyValveEnabled = (() => {
+        const period = valveSettingsByPeriod[activePeriodId] || {};
+        return Object.values(period).some((v) => v.enabled);
+    })();
+
     // Превышение объёма периода по клапанам
     const exceedsValveVolume = totalValveVolume > activePeriodVolume;
     const valveOverflow = Math.max(0, totalValveVolume - activePeriodVolume);
 
     const handleSaveValves = () => {
+        if (!hasAnyValveEnabled) {
+            alert('Выберите хотя бы один клапан.');
+            return;
+        }
         if (exceedsValveVolume) {
             alert(
                 `Превышен объём периода. Объём периода: ${activePeriodVolume} л, `
@@ -211,6 +272,10 @@ const WateringPage = () => {
 
     const handleSave = () => {
         // Проверка по всем периодам: сумма по бакам не больше объёма периода
+        if (!hasAnyValveEnabled) {
+            alert('Выберите хотя бы один клапан для активного периода.');
+            return;
+        }
         for (const p of periods) {
             const rows = tankRowsByPeriod[p.id] || [];
             const sum = rows.reduce((s, r) => {
@@ -318,15 +383,11 @@ const WateringPage = () => {
 
     // Изменение строки бака
     const updateTankRow = (periodId, index, field, value) => {
-        // Жёсткая обрезка поля объёма по объёму бака
+        // Объём: только цифры и точка, обрезка по объёму бака
         if (field === 'volume') {
+            value = sanitizeNumber(value);
             const num = parseFloat(value);
-            if (!isNaN(num) && num > tankVolume) {
-                value = String(tankVolume);
-            }
-            if (!isNaN(num) && num < 0) {
-                value = '0';
-            }
+            if (!isNaN(num) && num > tankVolume) value = String(tankVolume);
         }
 
         setTankRowsByPeriod((prev) => {
@@ -403,6 +464,13 @@ const WateringPage = () => {
                         </WarningBanner>
                     )}
 
+                    {hasDuplicateStart && (
+                        <div className="watering-error-banner">
+                            ⚠ У нескольких периодов одинаковое время начала.
+                            Измените время, чтобы оно было уникальным.
+                        </div>
+                    )}
+
                     {/* Таблица */}
                     <div className="watering-table-wrapper">
                         <table className="watering-table">
@@ -445,7 +513,12 @@ const WateringPage = () => {
                                         <td key={p.id}>
                                             <input
                                                 type="time"
-                                                className="watering-table__input"
+                                                className={
+                                                    'watering-table__input' +
+                                                    (duplicateStartIds.has(p.id)
+                                                        ? ' watering-table__input--invalid'
+                                                        : '')
+                                                }
                                                 value={p.start}
                                                 disabled={!isEditable}
                                                 onChange={(e) =>
@@ -460,16 +533,22 @@ const WateringPage = () => {
                                     <td>Длительность</td>
                                     {periods.map((p) => (
                                         <td key={p.id}>
-                                            <input
-                                                type="text"
-                                                className="watering-table__input"
-                                                placeholder="мин"
-                                                value={p.duration}
-                                                disabled={!isEditable}
-                                                onChange={(e) =>
-                                                    updatePeriod(p.id, 'duration', e.target.value)
-                                                }
-                                            />
+                                            <div className="watering-table__duration">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    maxLength="2"
+                                                    className="watering-table__input watering-table__input--duration"
+                                                    placeholder="мин"
+                                                    value={p.duration}
+                                                    disabled={!isEditable}
+                                                    onChange={(e) =>
+                                                        updatePeriod(p.id, 'duration', e.target.value)
+                                                    }
+                                                />
+                                                <span className="watering-table__duration-unit">мин</span>
+                                            </div>
                                         </td>
                                     ))}
                                     <td></td>
@@ -500,11 +579,19 @@ const WateringPage = () => {
                     </div>
 
                     <button
+                        type="button"
                         className="watering-button"
-                        onClick={() => setStep('distribution')}
-                        disabled={!isEditable}
+                        onClick={handleSaveValves}
+                        disabled={exceedsValveVolume || !hasAnyValveEnabled}
+                        title={
+                            exceedsValveVolume
+                                ? 'Превышен объём периода'
+                                : !hasAnyValveEnabled
+                                    ? 'Выберите хотя бы один клапан'
+                                    : 'Сохранить распределение по клапанам'
+                        }
                     >
-                        Настройка полива
+                        Сохранить
                     </button>
 
                     <p className="watering-tank-note">
@@ -748,6 +835,12 @@ const WateringPage = () => {
                         не должна превышать объём периода ({activePeriodVolume} л).
                     </p>
 
+                    {!hasAnyValveEnabled && (
+                        <div className="valves-block__warning">
+                            ⚠ Выберите хотя бы один клапан, иначе сохранение недоступно.
+                        </div>
+                    )}
+
                     <div className="valves-block__list">
                         {valves.map((valve) => {
                             const setting = getValveSetting(valve.id);
@@ -805,14 +898,15 @@ const WateringPage = () => {
                     )}
 
                     <button
-                        type="button"
                         className="watering-button"
-                        onClick={handleSaveValves}
-                        disabled={exceedsValveVolume}
+                        onClick={handleSave}
+                        disabled={exceedsPeriodVolume || !hasAnyValveEnabled}
                         title={
-                            exceedsValveVolume
+                            exceedsPeriodVolume
                                 ? 'Превышен объём периода'
-                                : 'Сохранить распределение по клапанам'
+                                : !hasAnyValveEnabled
+                                    ? 'Выберите хотя бы один клапан'
+                                    : 'Сохранить настройки'
                         }
                     >
                         Сохранить

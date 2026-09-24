@@ -889,3 +889,49 @@
 .valves-block .watering-button {
     margin: 8px auto 0;
 }
+
+/* ─── Длительность: только минуты, слева ─── */
+.watering-table__duration {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.watering-table__input--duration {
+    width: 70px;
+    text-align: left;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.watering-table__duration-unit {
+    font-size: 0.95rem;
+    color: #472A26;
+    font-weight: 500;
+}
+
+/* Невалидное время старта */
+.watering-table__input--invalid {
+    background-color: #FCE9E6;
+    border: 1px solid #C94F3D;
+    border-radius: 6px;
+}
+
+/* Красный баннер над таблицей */
+.watering-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #FCE9E6;
+    color: #7C2E22;
+    border-left: 4px solid #C94F3D;
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
