@@ -40,6 +40,8 @@ const SolutionsPage = () => {
     const [additives, setAdditives] = useState([]);
 
     const MAX_ADDITIVES = solutionAdditives.length;
+    const MAX_ADDITIVE_AMOUNT = 2000; // физический потолок: 2000 г / 2000 мл на замес
+    const SOFT_LIMIT_MULTIPLIER = 2;  // допустимое превышение рекомендуемой дозы
 
     const tanksListRef = useRef(null);
     const scrollTanks = (direction) => {
@@ -154,8 +156,35 @@ const SolutionsPage = () => {
                 if (i !== index) return item;
                 const next = { ...item, [field]: value };
 
-                if (field === 'volume') next.autoFilled = false;
+                // ─── Ввод объёма ───
+                if (field === 'volume') {
+                    next.autoFilled = false;
 
+                    // Чистим от мусора: только цифры и одна точка
+                    let str = String(value).replace(/[^0-9.]/g, '');
+                    const firstDot = str.indexOf('.');
+                    if (firstDot !== -1) {
+                        str =
+                            str.slice(0, firstDot + 1) +
+                            str.slice(firstDot + 1).replace(/\./g, '');
+                    }
+                    str = str.replace(/^\.+/, '');
+
+                    if (str === '') {
+                        next.volume = '';
+                    } else {
+                        let num = parseFloat(str);
+                        if (isNaN(num)) num = 0;
+                        if (num < 0) num = 0;
+
+                        // Hard limit — физический потолок
+                        if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
+
+                        next.volume = String(num);
+                    }
+                }
+
+                // ─── Смена добавки ───
                 if (field === 'additiveId') {
                     const additive = solutionAdditives.find((s) => s.id === value);
                     const base = getDoseBase();
@@ -165,13 +194,19 @@ const SolutionsPage = () => {
 
                     if (dose) {
                         const mid = (dose.min + dose.max) / 2;
-                        next.volume = String(Math.round(mid * 100) / 100);
+                        let rounded = Math.round(mid * 100) / 100;
+
+                        // На всякий случай обрезаем до hard limit
+                        if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
+
+                        next.volume = String(rounded);
                         next.autoFilled = true;
                     } else {
                         next.volume = '';
                         next.autoFilled = false;
                     }
                 }
+
                 return next;
             })
         );
@@ -194,9 +229,12 @@ const SolutionsPage = () => {
                 if (!dose) return item;
 
                 const mid = (dose.min + dose.max) / 2;
+                let rounded = Math.round(mid * 100) / 100;
+                if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
+
                 return {
                     ...item,
-                    volume: String(Math.round(mid * 100) / 100),
+                    volume: String(rounded),
                     autoFilled: true,
                 };
             })
@@ -321,10 +359,19 @@ const SolutionsPage = () => {
         );
         if (check.status === 'ok' || check.status === 'unknown') return null;
 
+        // Проверяем «сильное превышение» — сверх soft limit
+        const vol = parseFloat(row.volume) || 0;
+        const expectedMax = check.expected?.max || 0;
+        const isStrongOver =
+            check.status === 'above' &&
+            expectedMax > 0 &&
+            vol > expectedMax * SOFT_LIMIT_MULTIPLIER;
+
         return {
             additiveName: additive.name,
             status: check.status,
             expected: check.expected,
+            isStrongOver,
         };
     }).filter(Boolean);
 
@@ -750,20 +797,33 @@ const SolutionsPage = () => {
 
                 {/* Дозировка вне диапазона — НЕ блокирует */}
                 {doseWarnings.length > 0 && (
-                    <div className="mix-warning mix-warning--warning">
+                    <div
+                        className={
+                            'mix-warning ' +
+                            (doseWarnings.some((w) => w.isStrongOver)
+                                ? 'mix-warning--danger'
+                                : 'mix-warning--warning')
+                        }
+                    >
                         <div className="mix-warning__title">⚠ Проверьте дозировки:</div>
                         <ul className="mix-warning__list">
                             {doseWarnings.map((w, i) => (
                                 <li key={i}>
                                     <b>{w.additiveName}:</b>{' '}
-                                    {w.status === 'above' ? 'превышена' : 'занижена'}{' '}
+                                    {w.status === 'above'
+                                        ? w.isStrongOver
+                                            ? 'сильно превышена'
+                                            : 'превышена'
+                                        : 'занижена'}{' '}
                                     — рекомендуемый диапазон{' '}
                                     <b>{formatDoseRange(w.expected)}</b>.
                                 </li>
                             ))}
                         </ul>
                         <p className="mix-warning__hint">
-                            Это не блокирует замес — вы можете продолжить.
+                            {doseWarnings.some((w) => w.isStrongOver)
+                                ? 'Превышение больше чем в 2 раза — проверьте, действительно ли вы хотите столько добавить.'
+                                : 'Это не блокирует замес — вы можете продолжить.'}
                         </p>
                     </div>
                 )}
