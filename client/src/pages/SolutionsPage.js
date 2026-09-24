@@ -621,6 +621,16 @@ const SolutionsPage = () => {
                                 const unit = additive ? getUnitForForm(additive.form) : '';
                                 const base = getDoseBase();
 
+                                // id, которые уже выбраны в других строках
+                                const usedElsewhere = additives
+                                    .map((r, i) => (i === index ? null : r.additiveId))
+                                    .filter(Boolean);
+
+                                // Доступные добавки: все, кроме выбранных в других строках
+                                const availableAdditives = solutionAdditives.filter(
+                                    (s) => !usedElsewhere.includes(s.id)
+                                );
+
                                 const expected = additive && base
                                     ? calcDose(additive.dosePerLiter, base, additive.form)
                                     : null;
@@ -642,7 +652,7 @@ const SolutionsPage = () => {
                                             onChange={(e) => updateAdditive(index, 'additiveId', e.target.value)}
                                         >
                                             <option value="">— выберите добавку —</option>
-                                            {solutionAdditives.map((s) => (
+                                            {availableAdditives.map((s) => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name} ({s.category})
                                                 </option>
