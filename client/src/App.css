@@ -38,6 +38,34 @@
     }
 }
 
+/* ============================================================
+   Блок пользователя (логин + «Выйти»)
+   ============================================================ */
+
+.global-user {
+    position: fixed;
+    top: 24px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1000;
+    max-width: calc(100vw - 40px);
+}
+
+.global-user__name {
+    background-color: #AE6E42;
+    color: #fff;
+    border-radius: 30px;
+    padding: 12px 24px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .global-logout {
     background-color: #AE6E42;
     color: #fff;
@@ -48,6 +76,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
+    white-space: nowrap;
 }
 
     .global-logout:hover {
@@ -57,6 +86,10 @@
     .global-logout:active {
         transform: scale(0.97);
     }
+
+/* ============================================================
+   Модалка подтверждения выхода
+   ============================================================ */
 
 .logout-overlay {
     position: fixed;
@@ -80,6 +113,7 @@
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     text-align: center;
     animation: logoutPopIn 0.2s ease-out;
+    box-sizing: border-box;
 }
 
 .logout-modal__close {
@@ -180,25 +214,71 @@
     }
 }
 
-.global-user {
-    position: fixed;
-    top: 24px;
-    right: 30px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 1000;
+/* Адаптив*/
+
+/* Планшет */
+@media (max-width: 900px) {
+    .global-user {
+        top: 14px;
+        right: 14px;
+        gap: 8px;
+    }
+
+    .global-user__name {
+        padding: 9px 16px;
+        font-size: 0.95rem;
+        max-width: 130px;
+    }
+
+    .global-logout {
+        padding: 9px 18px;
+        font-size: 0.95rem;
+    }
 }
 
-.global-user__name {
-    background-color: #AE6E42;
-    color: #fff;
-    border-radius: 30px;
-    padding: 12px 24px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+/* Мобильный */
+@media (max-width: 600px) {
+    .global-user {
+        top: 10px;
+        right: 10px;
+        gap: 6px;
+        max-width: calc(100vw - 20px);
+    }
+
+    .global-user__name {
+        padding: 7px 12px;
+        font-size: 0.85rem;
+        max-width: 80px;
+    }
+
+    .global-logout {
+        padding: 7px 14px;
+        font-size: 0.85rem;
+        border-radius: 24px;
+    }
+
+    /* Модалка — компактнее */
+    .logout-modal {
+        padding: 24px 20px 20px;
+        border-radius: 14px;
+    }
+
+    .logout-modal__title {
+        font-size: 1.1rem;
+    }
+
+    .logout-modal__text {
+        font-size: 0.9rem;
+        margin-bottom: 18px;
+    }
+
+    .logout-modal__actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .logout-modal__btn {
+        width: 100%;
+        padding: 12px;
+    }
 }

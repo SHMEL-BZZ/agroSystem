@@ -923,3 +923,100 @@
     color: #C94F3D;
     font-weight: 600;
 }
+
+/* Адаптив */
+@media (max-width: 1000px) {
+    .solutions-page {
+        padding: 20px 20px 40px;
+    }
+
+    .solutions-mix {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 24px;
+    }
+
+    .solutions-mix__left,
+    .solutions-mix__right {
+        flex: 1 1 auto;
+        max-width: 100%;
+    }
+
+    .solutions-mix__right {
+        flex: 1 1 auto;
+        max-width: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .solutions-page {
+        padding: 12px;
+    }
+
+    .solutions-tabs {
+        gap: 24px;
+        margin-bottom: 20px;
+    }
+
+    .solutions-tabs__tab {
+        font-size: 1rem;
+    }
+
+    .tank-view,
+    .tank-volume {
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .mix-info,
+    .mix-add {
+        padding: 20px 16px;
+        border-radius: 14px;
+    }
+
+    .mix-add__row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+        .mix-add__row label {
+            flex: 1 1 auto;
+            width: auto;
+        }
+
+    .mix-add__input {
+        width: 100%;
+    }
+
+    .mix-add__additive-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mix-add__select {
+        flex: 1 1 100%;
+    }
+
+    .mix-add__input--volume {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .solutions-info__block {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .solutions-info__img,
+    .solutions-info__placeholder {
+        width: 100%;
+        height: 140px;
+    }
+
+    .solutions-info__group-title {
+        font-size: 1.05rem;
+        padding: 12px 16px;
+        border-radius: 12px;
+    }
+}
