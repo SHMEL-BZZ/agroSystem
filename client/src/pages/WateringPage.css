@@ -889,3 +889,181 @@
 .valves-block .watering-button {
     margin: 8px auto 0;
 }
+
+/* Длительность: только минуты, слева */
+.watering-table__duration {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.watering-table__input--duration {
+    width: 70px;
+    text-align: left;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.watering-table__duration-unit {
+    font-size: 0.95rem;
+    color: #472A26;
+    font-weight: 500;
+}
+
+/* Невалидное время старта */
+.watering-table__input--invalid {
+    background-color: #FCE9E6;
+    border: 1px solid #C94F3D;
+    border-radius: 6px;
+}
+
+/* Красный баннер над таблицей */
+.watering-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #FCE9E6;
+    color: #7C2E22;
+    border-left: 4px solid #C94F3D;
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+
+/* Адаптив  */
+@media (max-width: 1000px) {
+    .watering-page {
+        padding: 20px 20px 40px;
+    }
+
+    .watering-card {
+        padding: 24px 20px 30px;
+    }
+
+    .watering-title {
+        font-size: 1.6rem;
+    }
+
+    .watering-table th,
+    .watering-table td {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+    .distribution {
+        flex-direction: column;
+        gap: 30px;
+        align-items: stretch;
+    }
+
+    .distribution__left {
+        width: 100%;
+    }
+}
+
+@media (max-width: 700px) {
+    .watering-page {
+        padding: 12px;
+    }
+
+    .watering-card {
+        padding: 18px 14px 24px;
+        border-radius: 14px;
+    }
+
+    .watering-title {
+        font-size: 1.3rem;
+    }
+
+    .watering-date {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .watering-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .watering-table {
+        min-width: 560px;
+    }
+
+    .distribution__right {
+        width: 100%;
+    }
+
+    .distribution__row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .distribution__label,
+    .distribution__label--long {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .distribution__input,
+    .distribution__input--count {
+        width: 100%;
+    }
+
+    .distribution__tank-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .distribution__select {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .distribution__tank-contents {
+        flex: 1 1 100%;
+        order: 2;
+    }
+
+    .distribution__tank-row .distribution__input {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .valves-block {
+        padding: 18px 14px;
+    }
+
+    .valves-block__row {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .valves-block__name {
+        flex: 1 1 100%;
+        order: 2;
+    }
+
+    .valves-block__input {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 80px;
+    }
+
+    .period-selector {
+        gap: 8px;
+    }
+
+    .period-selector__item {
+        padding: 6px 14px;
+        font-size: 0.9rem;
+    }
+}

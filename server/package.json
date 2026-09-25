@@ -35,5 +35,8 @@
     "testMatch": [
       "**/test-*.js"
     ]
+  },
+  "directories": {
+    "test": "test"
   }
 }
