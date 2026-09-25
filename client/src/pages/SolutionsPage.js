@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import Toast from '../components/Toast';
+import React, { useState, useRef, useEffect } from 'react';
 import './SolutionsPage.css';
 import SolutionsInfo from '../components/SolutionsInfo';
 import { solutionAdditives, checkCompatibility } from '../data/solutionsInfo';
@@ -24,6 +25,8 @@ const SolutionsPage = () => {
         { id: 3, name: 'Бак 3', volume: 2000, usedLiters: 0, items: [] },
     ]);
 
+    const [toastMessage, setToastMessage] = useState('');
+
     const [activeTankId, setActiveTankId] = useState(tanks[0].id);
     const activeTank = tanks.find((t) => t.id === activeTankId);
 
@@ -40,6 +43,8 @@ const SolutionsPage = () => {
     const [additives, setAdditives] = useState([]);
 
     const MAX_ADDITIVES = solutionAdditives.length;
+    const MAX_ADDITIVE_AMOUNT = 2000; // физический потолок: 2000 г / 2000 мл на замес
+    const SOFT_LIMIT_MULTIPLIER = 2;  // допустимое превышение рекомендуемой дозы
 
     const tanksListRef = useRef(null);
     const scrollTanks = (direction) => {
@@ -52,7 +57,7 @@ const SolutionsPage = () => {
         }
     };
 
-    // ─── Удаление бака ───
+    // Удаление бака 
     const askDeleteTank = (id) => {
         if (tanks.length <= 2) return;
         setTankToDelete(id);
@@ -70,7 +75,7 @@ const SolutionsPage = () => {
         setTankToDelete(null);
     };
 
-    // ─── Создание бака ───
+    // Создание бака 
     const openAddTankDialog = () => {
         setNewTankVolume('2000');
         setIsAddTankOpen(true);
@@ -106,7 +111,7 @@ const SolutionsPage = () => {
         );
     };
 
-    // ─── Количество добавок ───
+    // Количество добавок 
     const handleAdditivesCountChange = (value) => {
         if (value === '') {
             setAdditivesCount('');
@@ -132,7 +137,7 @@ const SolutionsPage = () => {
         });
     };
 
-    // ─── База для дозировки ───
+    // База для дозировки 
     // 1) вода, уже находящаяся в баке;
     // 2) если в баке нет воды — вода, вводимая сейчас.
     const getDoseBase = () => {
@@ -147,15 +152,42 @@ const SolutionsPage = () => {
         return '';
     };
 
-    // ─── Изменение строки добавки ───
+    //Изменение строки добавки 
     const updateAdditive = (index, field, value) => {
         setAdditives((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
                 const next = { ...item, [field]: value };
 
-                if (field === 'volume') next.autoFilled = false;
+                // Ввод объёма 
+                if (field === 'volume') {
+                    next.autoFilled = false;
 
+                    // Чистим от мусора: только цифры и одна точка
+                    let str = String(value).replace(/[^0-9.]/g, '');
+                    const firstDot = str.indexOf('.');
+                    if (firstDot !== -1) {
+                        str =
+                            str.slice(0, firstDot + 1) +
+                            str.slice(firstDot + 1).replace(/\./g, '');
+                    }
+                    str = str.replace(/^\.+/, '');
+
+                    if (str === '') {
+                        next.volume = '';
+                    } else {
+                        let num = parseFloat(str);
+                        if (isNaN(num)) num = 0;
+                        if (num < 0) num = 0;
+
+                        // Hard limit — физический потолок
+                        if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
+
+                        next.volume = String(num);
+                    }
+                }
+
+                // Смена добавки 
                 if (field === 'additiveId') {
                     const additive = solutionAdditives.find((s) => s.id === value);
                     const base = getDoseBase();
@@ -165,21 +197,51 @@ const SolutionsPage = () => {
 
                     if (dose) {
                         const mid = (dose.min + dose.max) / 2;
-                        next.volume = String(Math.round(mid * 100) / 100);
+                        let rounded = Math.round(mid * 100) / 100;
+
+                        // На всякий случай обрезаем до hard limit
+                        if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
+
+                        next.volume = String(rounded);
                         next.autoFilled = true;
                     } else {
                         next.volume = '';
                         next.autoFilled = false;
                     }
                 }
+
                 return next;
             })
         );
     };
 
-    // ─── Изменение воды ───
+    // Изменение воды 
     const handleWaterChange = (value) => {
-        setWaterLiters(value);
+        // Чистим от всего, кроме цифр и одной точки
+        let str = String(value).replace(/[^0-9.]/g, '');
+        const firstDot = str.indexOf('.');
+        if (firstDot !== -1) {
+            str =
+                str.slice(0, firstDot + 1) +
+                str.slice(firstDot + 1).replace(/\./g, '');
+        }
+        str = str.replace(/^\.+/, '');
+
+        // Обрезаем по свободному объёму бака
+        if (str !== '') {
+            let num = parseFloat(str);
+            if (isNaN(num)) num = 0;
+            if (num < 0) num = 0;
+
+            const maxFree = freeLiters;
+            if (num > maxFree) num = maxFree;
+
+            str = String(num);
+        }
+
+        setWaterLiters(str);
+
+        // Пересчёт автозаполнения для добавок
         setAdditives((prev) =>
             prev.map((item) => {
                 if (!item.additiveId) return item;
@@ -194,16 +256,19 @@ const SolutionsPage = () => {
                 if (!dose) return item;
 
                 const mid = (dose.min + dose.max) / 2;
+                let rounded = Math.round(mid * 100) / 100;
+                if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
+
                 return {
                     ...item,
-                    volume: String(Math.round(mid * 100) / 100),
+                    volume: String(rounded),
                     autoFilled: true,
                 };
             })
         );
     };
 
-    // ─── Пересчёт доз при смене активного бака ───
+    // Пересчёт доз при смене активного бака 
     useEffect(() => {
         const base = getDoseBase();
         if (!base) return;
@@ -226,10 +291,10 @@ const SolutionsPage = () => {
             });
             return changed ? next : prev;
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        
     }, [activeTankId]);
 
-    // ─── Предупреждение: добавка уже есть в баке ───
+    // Предупреждение: добавка уже есть в баке 
     const alreadyInTankWarnings = additives.map((row) => {
         if (!row.additiveId) return null;
         const additive = solutionAdditives.find((s) => s.id === row.additiveId);
@@ -247,7 +312,6 @@ const SolutionsPage = () => {
         };
     }).filter(Boolean);
 
-    // ─── pendingLiters ───
     const pendingLiters = (() => {
         let sum = 0;
         const water = parseFloat(waterLiters);
@@ -264,8 +328,11 @@ const SolutionsPage = () => {
     })();
 
     const exceedsTank = activeTank && pendingLiters > freeLiters;
+    const enteredWater = parseFloat(waterLiters);
+    const waterOverflow =
+        !isNaN(enteredWater) && enteredWater > freeLiters;
 
-    // ─── Совместимость ───
+    // Совместимость 
     const tankAdditiveIds = activeTank
         ? activeTank.items.filter((it) => it.kind === 'additive').map((it) => it.id)
         : [];
@@ -304,7 +371,7 @@ const SolutionsPage = () => {
         ...violationsWithTank.map((v) => ({ ...v, scope: 'tank' })),
     ];
 
-    // ─── Проверка дозировок ───
+    // Проверка дозировок 
     const doseWarnings = additives.map((row) => {
         if (!row.additiveId || !row.volume) return null;
         const additive = solutionAdditives.find((s) => s.id === row.additiveId);
@@ -321,10 +388,19 @@ const SolutionsPage = () => {
         );
         if (check.status === 'ok' || check.status === 'unknown') return null;
 
+        // Проверяем «сильное превышение» — сверх soft limit
+        const vol = parseFloat(row.volume) || 0;
+        const expectedMax = check.expected?.max || 0;
+        const isStrongOver =
+            check.status === 'above' &&
+            expectedMax > 0 &&
+            vol > expectedMax * SOFT_LIMIT_MULTIPLIER;
+
         return {
             additiveName: additive.name,
             status: check.status,
             expected: check.expected,
+            isStrongOver,
         };
     }).filter(Boolean);
 
@@ -332,7 +408,7 @@ const SolutionsPage = () => {
     // Дозировки и «уже в баке» — не блокируют.
     const canMix = allViolations.length === 0 && !exceedsTank;
 
-    // ─── Замешать ───
+    // Замешать
     const handleMix = () => {
         if (!activeTank) return;
 
@@ -397,6 +473,12 @@ const SolutionsPage = () => {
                     items: merged,
                 };
             })
+        );
+
+        // Показываем тост
+        const totalAdded = newItems.reduce((sum, it) => sum + it.amount, 0);
+        setToastMessage(
+            `Вы замешали раствор в «${activeTank.name}»: добавлено ${newItems.length} компонент(ов).`
         );
 
         setWaterLiters('');
@@ -592,12 +674,23 @@ const SolutionsPage = () => {
                     <div className="mix-add__row">
                         <label>Вода</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={waterLiters}
                             onChange={(e) => handleWaterChange(e.target.value)}
-                            className="mix-add__input"
+                            className={
+                                'mix-add__input' +
+                                (waterOverflow ? ' mix-add__input--invalid' : '')
+                            }
+                            placeholder={`до ${freeLiters}`}
+                            title={`Максимум: ${freeLiters} л`}
                         />
                         <span>л.</span>
+                        {waterOverflow && (
+                            <div className="mix-add__overflow-hint">
+                                Максимум — {freeLiters.toFixed(2)} л (свободно в баке)
+                            </div>
+                        )}
                     </div>
 
                     <div className="mix-add__row">
@@ -621,6 +714,16 @@ const SolutionsPage = () => {
                                 const unit = additive ? getUnitForForm(additive.form) : '';
                                 const base = getDoseBase();
 
+                                // id, которые уже выбраны в других строках
+                                const usedElsewhere = additives
+                                    .map((r, i) => (i === index ? null : r.additiveId))
+                                    .filter(Boolean);
+
+                                // Доступные добавки: все, кроме выбранных в других строках
+                                const availableAdditives = solutionAdditives.filter(
+                                    (s) => !usedElsewhere.includes(s.id)
+                                );
+
                                 const expected = additive && base
                                     ? calcDose(additive.dosePerLiter, base, additive.form)
                                     : null;
@@ -642,7 +745,7 @@ const SolutionsPage = () => {
                                             onChange={(e) => updateAdditive(index, 'additiveId', e.target.value)}
                                         >
                                             <option value="">— выберите добавку —</option>
-                                            {solutionAdditives.map((s) => (
+                                            {availableAdditives.map((s) => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name} ({s.category})
                                                 </option>
@@ -740,20 +843,33 @@ const SolutionsPage = () => {
 
                 {/* Дозировка вне диапазона — НЕ блокирует */}
                 {doseWarnings.length > 0 && (
-                    <div className="mix-warning mix-warning--warning">
+                    <div
+                        className={
+                            'mix-warning ' +
+                            (doseWarnings.some((w) => w.isStrongOver)
+                                ? 'mix-warning--danger'
+                                : 'mix-warning--warning')
+                        }
+                    >
                         <div className="mix-warning__title">⚠ Проверьте дозировки:</div>
                         <ul className="mix-warning__list">
                             {doseWarnings.map((w, i) => (
                                 <li key={i}>
                                     <b>{w.additiveName}:</b>{' '}
-                                    {w.status === 'above' ? 'превышена' : 'занижена'}{' '}
+                                    {w.status === 'above'
+                                        ? w.isStrongOver
+                                            ? 'сильно превышена'
+                                            : 'превышена'
+                                        : 'занижена'}{' '}
                                     — рекомендуемый диапазон{' '}
                                     <b>{formatDoseRange(w.expected)}</b>.
                                 </li>
                             ))}
                         </ul>
                         <p className="mix-warning__hint">
-                            Это не блокирует замес — вы можете продолжить.
+                            {doseWarnings.some((w) => w.isStrongOver)
+                                ? 'Превышение больше чем в 2 раза — проверьте, действительно ли вы хотите столько добавить.'
+                                : 'Это не блокирует замес — вы можете продолжить.'}
                         </p>
                     </div>
                 )}
@@ -794,6 +910,10 @@ const SolutionsPage = () => {
             </div>
 
             {activeTab === 'mix' ? mixContent : <SolutionsInfo />}
+            <Toast
+                message={toastMessage}
+                onClose={() => setToastMessage('')}
+            />
         </div>
     );
 };

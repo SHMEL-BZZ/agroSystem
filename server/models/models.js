@@ -2,6 +2,7 @@ const sequelize = require('../db')
 const {DataTypes} = require('sequelize')
 
 // модели
+// пользователи
 const User = sequelize.define('User', {
     id: {
         type: DataTypes.INTEGER,
@@ -24,7 +25,7 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(255),
         allowNull: true,
         unique: true,
-        field: 'почта'         
+        field: 'почта'
     }
 }, {
     tableName: 'пользователи',

@@ -204,3 +204,64 @@
         width: 100%; 
         text-align: left;
     }
+
+
+/* Адаптив */
+@media (max-width: 900px) {
+    .guide-page {
+        padding: 20px 24px 40px;
+    }
+
+    .guide-title {
+        font-size: 1.8rem;
+        margin: 12px 0 20px;
+    }
+
+    .guide-toc,
+    .guide-section {
+        padding: 20px 22px;
+    }
+
+    .guide-section__title {
+        font-size: 1.2rem;
+    }
+
+    .guide-section__body > p,
+    .guide-step__text p,
+    .guide-step__text ul {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 720px) {
+    .guide-step {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .guide-step__image {
+        width: 100%;
+        max-width: 260px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .guide-page {
+        padding: 16px;
+    }
+
+    .guide-title {
+        font-size: 1.5rem;
+    }
+
+    .guide-toc,
+    .guide-section {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .guide-section__title {
+        font-size: 1.1rem;
+    }
+}

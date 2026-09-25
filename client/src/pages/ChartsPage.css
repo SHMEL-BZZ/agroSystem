@@ -186,3 +186,81 @@
     background-color: #FFF6DC;
     color: #6E3813;
 }
+
+/* Адаптив */
+@media (max-width: 1000px) {
+    .charts-page {
+        padding: 20px 20px 40px;
+        gap: 24px;
+    }
+
+    .charts-sidebar {
+        width: 220px;
+        padding: 20px 16px;
+    }
+
+    .charts-sidebar__item {
+        padding: 12px 14px;
+        font-size: 0.95rem;
+    }
+
+    .charts-description,
+    .charts-plot,
+    .charts-filters {
+        padding: 20px 20px;
+    }
+}
+
+@media (max-width: 800px) {
+    .charts-page {
+        flex-direction: column;
+        gap: 20px;
+        padding: 12px 12px 30px;
+    }
+
+    .charts-sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 12px;
+        gap: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .charts-sidebar__item {
+        flex-shrink: 0;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+
+    .charts-description__title {
+        font-size: 1.1rem;
+    }
+
+    .charts-description p {
+        font-size: 0.95rem;
+    }
+
+    .charts-plot__canvas {
+        height: 320px;
+    }
+
+    .charts-filters {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+    }
+
+    .charts-filters__group {
+        width: 100%;
+    }
+
+    .charts-filters__input {
+        width: 100%;
+    }
+
+    .charts-filters__hint {
+        margin-left: 0;
+        max-width: 100%;
+    }
+}

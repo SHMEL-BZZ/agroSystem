@@ -19,7 +19,7 @@ class UserController {
         try {
             const { login, password, email } = req.body
 
-            // --- Валидация ---
+            // валидация 
             if (!login || login.length < 3 || login.length > 50) {
                 return next(ApiError.badRequest('Логин должен быть от 3 до 50 символов'))
             }
@@ -27,32 +27,32 @@ class UserController {
                 return next(ApiError.badRequest('Пароль должен быть минимум 6 символов'))
             }
 
-            // Email необязателен, но если передан — проверяем формат
+            // email необязателен, но если передан — проверяем формат
             if (email) {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
                 if (!emailRegex.test(email)) {
                     return next(ApiError.badRequest('Некорректный email'))
                 }
 
-                // Проверка уникальности email
+                // проверка уникальности email
                 const existingEmail = await User.findOne({ where: { email } })
                 if (existingEmail) {
                     return next(ApiError.badRequest('Пользователь с таким email уже существует'))
                 }
             }
 
-            // Проверка уникальности login
+            // проверка уникальности login
             const candidate = await User.findOne({ where: { login } })
             if (candidate) {
                 return next(ApiError.badRequest('Пользователь с таким login уже существует'))
             }
 
-            // --- Создание ---
+            // Создание 
             const hashPassword = await bcrypt.hash(password, 10)
             const user = await User.create({
                 login,
                 password: hashPassword,
-                email        // может быть undefined — тогда в БД будет NULL
+                email
             })
 
             const token = generateJwt(user.id, user.login)
@@ -75,7 +75,6 @@ class UserController {
 
             const user = await User.findOne({ where: { login } })
 
-            // Не говорим, что именно неверно — безопасность
             if (!user || !await bcrypt.compare(password, user.password)) {
                 return next(ApiError.badRequest('Неверный логин или пароль'))
             }
