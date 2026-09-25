@@ -1,0 +1,37 @@
+name: Client CI
+
+on:
+  push:
+    branches: [ main, master, client ]
+  pull_request:
+    branches: [ main, master, client ]
+
+
+jobs:
+  test-client:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+      # 1. Клонируем репозиторий в runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Устанавливаем Node.js 20 и включаем кэш npm
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './client/package-lock.json'
+
+      # 3. Устанавливаем зависимости по package-lock.json
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Запускаем тесты
+      - name: Run tests
+        run: npm test -- --watchAll=false --coverage
