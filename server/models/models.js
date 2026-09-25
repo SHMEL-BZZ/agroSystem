@@ -20,6 +20,12 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(255),
         allowNull: false,
         field: 'пароль'
+    },
+    email: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true,
+        field: 'почта'
     }
 }, {
     tableName: 'пользователи',
