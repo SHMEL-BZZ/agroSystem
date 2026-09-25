@@ -28,6 +28,7 @@ const ValvesPage = () => {
     const [addMode, setAddMode] = useState('existing'); // 'existing' | 'new'
     const [selectedFreeId, setSelectedFreeId] = useState('');
     const [newGreenhouseName, setNewGreenhouseName] = useState('');
+    const [nameError, setNameError] = useState('');
 
     // Модалка удаления
     const [greenhouseToRemove, setGreenhouseToRemove] = useState(null);
@@ -42,16 +43,29 @@ const ValvesPage = () => {
     // Свободные теплицы
     const freeGreenhouses = greenhouses.filter((g) => g.valveId === null);
 
+    // Проверка: есть ли уже теплица с таким именем (без учёта регистра и пробелов)
+    const isNameTaken = (name, ignoreId = null) => {
+        const normalized = name.trim().toLowerCase();
+        if (!normalized) return false;
+        return greenhouses.some(
+            (g) =>
+                g.id !== ignoreId &&
+                g.name.trim().toLowerCase() === normalized
+        );
+    };
+
     // ─── Модалка добавления ───
     const openAddModal = () => {
         setAddMode(freeGreenhouses.length > 0 ? 'existing' : 'new');
         setSelectedFreeId(freeGreenhouses[0]?.id?.toString() || '');
         setNewGreenhouseName('');
+        setNameError('');
         setIsAddModalOpen(true);
     };
 
     const cancelAddModal = () => {
         setIsAddModalOpen(false);
+        setNameError('');
     };
 
     const confirmAddModal = () => {
@@ -69,9 +83,15 @@ const ValvesPage = () => {
         } else {
             const name = newGreenhouseName.trim();
             if (!name) {
-                alert('Введите название теплицы.');
+                setNameError('Введите название теплицы.');
                 return;
             }
+
+            if (isNameTaken(name)) {
+                setNameError('Теплица с таким названием уже существует.');
+                return;
+            }
+
             const newId = greenhouses.length
                 ? Math.max(...greenhouses.map((g) => g.id)) + 1
                 : 1;
@@ -80,6 +100,7 @@ const ValvesPage = () => {
                 { id: newId, name, valveId: activeValveId },
             ]);
         }
+        setNameError('');
         setIsAddModalOpen(false);
     };
 
@@ -184,7 +205,10 @@ const ValvesPage = () => {
                                         ? ' valves-modal__tab--active'
                                         : '')
                                 }
-                                onClick={() => setAddMode('existing')}
+                                onClick={() => {
+                                    setAddMode('existing');
+                                    setNameError('');
+                                }}
                                 disabled={freeGreenhouses.length === 0}
                             >
                                 Свободная теплица
@@ -197,7 +221,10 @@ const ValvesPage = () => {
                                         ? ' valves-modal__tab--active'
                                         : '')
                                 }
-                                onClick={() => setAddMode('new')}
+                                onClick={() => {
+                                    setAddMode('new');
+                                    setNameError('');
+                                }}
                             >
                                 Новая теплица
                             </button>
@@ -241,14 +268,25 @@ const ValvesPage = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    className="valves-modal__input"
+                                    className={
+                                        'valves-modal__input' +
+                                        (nameError
+                                            ? ' valves-modal__input--invalid'
+                                            : '')
+                                    }
                                     placeholder="Например, Теплица 3"
                                     value={newGreenhouseName}
-                                    onChange={(e) =>
-                                        setNewGreenhouseName(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        setNewGreenhouseName(e.target.value);
+                                        if (nameError) setNameError('');
+                                    }}
                                     autoFocus
                                 />
+                                {nameError && (
+                                    <p className="valves-modal__error">
+                                        {nameError}
+                                    </p>
+                                )}
                             </div>
                         )}
 
