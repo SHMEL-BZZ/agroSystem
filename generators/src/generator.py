@@ -2,6 +2,8 @@ import psycopg2
 import random
 from datetime import datetime, date
 import time
+import argparse
+import sys
 
 from config import get_db_config  
 
@@ -107,37 +109,46 @@ def save_to_database(cursor, valve_id, data):
     ))
 
 
+
+
 def main():
-    scenario_choice = choose_scenario()
+    # Windows: чтобы русский текст в stdout не падал
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--scenario', type=int, choices=[1, 2, 3], default=1,
+                        help='1=Лето, 2=Осень/Весна, 3=Тестовый')
+    args = parser.parse_args()
+
+    scenario_choice = args.scenario
     scenario_config = SCENARIOS[scenario_choice]
-    interval = scenario_config['interval_seconds']
     scenario_name = scenario_config['name']
 
-    print(f"\nГенератор запущен в режиме: {scenario_name}")
-    print(f"Интервал: {interval} секунд")
+    print(f"Генератор запущен в режиме: {scenario_name}")
 
     conn = psycopg2.connect(**get_db_config())
     cursor = conn.cursor()
-    cycle_count = 0
 
     try:
-        while True:
-            cycle_count += 1
-            print(f"\nЦикл {cycle_count} ({datetime.now().strftime('%H:%M:%S')})")
+        for valve_id in VALVE_OFFSETS.keys():
+            data = generate_sensor_data(valve_id, scenario_config)
+            save_to_database(cursor, valve_id, data)
+            print(f"Сохранено: клапан {valve_id}")
 
-            for valve_id in VALVE_OFFSETS.keys():
-                data = generate_sensor_data(valve_id, scenario_config)
-                save_to_database(cursor, valve_id, data)
-                print(f"Сохранено: клапан {valve_id}")
+        conn.commit()
+        print("Готово: один прогон по всем клапанам")
 
-            conn.commit()
-            time.sleep(interval)
-
-    except KeyboardInterrupt:
-        print(f"\nОстановлен. Циклов: {cycle_count}")
+    except Exception as e:
+        print(f"Ошибка: {e}", file=sys.stderr)
+        conn.rollback()
+        sys.exit(1)
     finally:
         cursor.close()
         conn.close()
+
 
 if __name__ == "__main__":
     main()
