@@ -42,9 +42,80 @@ const SolutionsPage = () => {
     const [additivesCount, setAdditivesCount] = useState('');
     const [additives, setAdditives] = useState([]);
 
-    const MAX_ADDITIVES = solutionAdditives.length;
+    // Максимальное количество добавок в одном замесе
+    const MAX_ADDITIVES = 9;
     const MAX_ADDITIVE_AMOUNT = 2000; // физический потолок: 2000 г / 2000 мл на замес
     const SOFT_LIMIT_MULTIPLIER = 2;  // допустимое превышение рекомендуемой дозы
+
+    // 1 г твёрдой добавки условно занимает 1 мл = 0.001 л объёма бака
+    const SOLID_GRAM_TO_LITER = 0.001;
+
+    // Максимальный объём бака (физический предел ввода)
+    const MAX_TANK_VOLUME = 50000;
+
+    // Санитайзер для объёма бака: только цифры и максимум одна точка.
+    function sanitizeTankVolume(value) {
+        if (value === '' || value === null || value === undefined) return '';
+
+        let str = String(value);
+
+        str = str.replace(/[^0-9.]/g, '');
+        str = str.replace(/^\.+/, '');
+
+        const firstDot = str.indexOf('.');
+        if (firstDot !== -1) {
+            str =
+                str.slice(0, firstDot + 1) +
+                str.slice(firstDot + 1).replace(/\./g, '');
+        }
+
+        if (str !== '') {
+            let num = parseFloat(str);
+            if (isNaN(num)) num = 0;
+            if (num < 0) num = 0;
+            if (num > MAX_TANK_VOLUME) num = MAX_TANK_VOLUME;
+            str = String(num);
+        }
+
+        return str;
+    }
+
+    // Санитайзер для количества добавок: только цифры, максимум MAX_ADDITIVES
+    function sanitizeAdditivesCount(value) {
+        if (value === '' || value === null || value === undefined) return '';
+
+        let str = String(value).replace(/\D/g, '');
+        if (str === '') return '';
+
+        let num = parseInt(str, 10);
+        if (isNaN(num) || num < 0) num = 0;
+        if (num > MAX_ADDITIVES) num = MAX_ADDITIVES;
+
+        return String(num);
+    }
+
+    // Санитайзер для объёма добавки: только цифры и максимум одна точка
+    function sanitizeAdditiveVolume(value) {
+        if (value === '' || value === null || value === undefined) return '';
+
+        let str = String(value).replace(/[^0-9.]/g, '');
+        const firstDot = str.indexOf('.');
+        if (firstDot !== -1) {
+            str =
+                str.slice(0, firstDot + 1) +
+                str.slice(firstDot + 1).replace(/\./g, '');
+        }
+        str = str.replace(/^\.+/, '');
+
+        if (str === '') return '';
+
+        let num = parseFloat(str);
+        if (isNaN(num)) num = 0;
+        if (num < 0) num = 0;
+        if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
+
+        return String(num);
+    }
 
     const tanksListRef = useRef(null);
     const scrollTanks = (direction) => {
@@ -85,11 +156,14 @@ const SolutionsPage = () => {
         setNewTankVolume('2000');
     };
     const confirmAddTank = () => {
-        const volume = parseFloat(newTankVolume);
-        if (!volume || volume <= 0) {
+        const sanitized = sanitizeTankVolume(newTankVolume);
+        const volume = parseFloat(sanitized);
+
+        if (isNaN(volume) || volume <= 0) {
             alert('Введите корректный объём бака (больше 0).');
             return;
         }
+
         const newId = tanks.length ? Math.max(...tanks.map((t) => t.id)) + 1 : 1;
         const newTank = {
             id: newId,
@@ -105,25 +179,29 @@ const SolutionsPage = () => {
     };
 
     const handleTankVolumeChange = (value) => {
-        const val = parseFloat(value) || 0;
+        const sanitized = sanitizeTankVolume(value);
         setTanks((prev) =>
-            prev.map((t) => (t.id === activeTankId ? { ...t, volume: val } : t))
+            prev.map((t) =>
+                t.id === activeTankId
+                    ? { ...t, volume: sanitized === '' ? 0 : parseFloat(sanitized) }
+                    : t
+            )
         );
     };
 
     // Количество добавок 
     const handleAdditivesCountChange = (value) => {
-        if (value === '') {
+        const sanitized = sanitizeAdditivesCount(value);
+
+        if (sanitized === '') {
             setAdditivesCount('');
             setAdditives([]);
             return;
         }
-        let num = parseInt(value, 10);
-        if (isNaN(num)) return;
-        if (num < 0) num = 0;
-        if (num > MAX_ADDITIVES) num = MAX_ADDITIVES;
 
-        setAdditivesCount(String(num));
+        const num = parseInt(sanitized, 10);
+
+        setAdditivesCount(sanitized);
         setAdditives((prev) => {
             const next = [...prev];
             if (next.length < num) {
@@ -138,8 +216,6 @@ const SolutionsPage = () => {
     };
 
     // База для дозировки 
-    // 1) вода, уже находящаяся в баке;
-    // 2) если в баке нет воды — вода, вводимая сейчас.
     const getDoseBase = () => {
         if (activeTank) {
             const waterItem = activeTank.items.find((it) => it.kind === 'water');
@@ -152,7 +228,7 @@ const SolutionsPage = () => {
         return '';
     };
 
-    //Изменение строки добавки 
+    // Изменение строки добавки 
     const updateAdditive = (index, field, value) => {
         setAdditives((prev) =>
             prev.map((item, i) => {
@@ -162,29 +238,7 @@ const SolutionsPage = () => {
                 // Ввод объёма 
                 if (field === 'volume') {
                     next.autoFilled = false;
-
-                    // Чистим от мусора: только цифры и одна точка
-                    let str = String(value).replace(/[^0-9.]/g, '');
-                    const firstDot = str.indexOf('.');
-                    if (firstDot !== -1) {
-                        str =
-                            str.slice(0, firstDot + 1) +
-                            str.slice(firstDot + 1).replace(/\./g, '');
-                    }
-                    str = str.replace(/^\.+/, '');
-
-                    if (str === '') {
-                        next.volume = '';
-                    } else {
-                        let num = parseFloat(str);
-                        if (isNaN(num)) num = 0;
-                        if (num < 0) num = 0;
-
-                        // Hard limit — физический потолок
-                        if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
-
-                        next.volume = String(num);
-                    }
+                    next.volume = sanitizeAdditiveVolume(value);
                 }
 
                 // Смена добавки 
@@ -199,7 +253,6 @@ const SolutionsPage = () => {
                         const mid = (dose.min + dose.max) / 2;
                         let rounded = Math.round(mid * 100) / 100;
 
-                        // На всякий случай обрезаем до hard limit
                         if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
 
                         next.volume = String(rounded);
@@ -217,7 +270,6 @@ const SolutionsPage = () => {
 
     // Изменение воды 
     const handleWaterChange = (value) => {
-        // Чистим от всего, кроме цифр и одной точки
         let str = String(value).replace(/[^0-9.]/g, '');
         const firstDot = str.indexOf('.');
         if (firstDot !== -1) {
@@ -227,7 +279,6 @@ const SolutionsPage = () => {
         }
         str = str.replace(/^\.+/, '');
 
-        // Обрезаем по свободному объёму бака
         if (str !== '') {
             let num = parseFloat(str);
             if (isNaN(num)) num = 0;
@@ -241,7 +292,6 @@ const SolutionsPage = () => {
 
         setWaterLiters(str);
 
-        // Пересчёт автозаполнения для добавок
         setAdditives((prev) =>
             prev.map((item) => {
                 if (!item.additiveId) return item;
@@ -291,7 +341,7 @@ const SolutionsPage = () => {
             });
             return changed ? next : prev;
         });
-        
+
     }, [activeTankId]);
 
     // Предупреждение: добавка уже есть в баке 
@@ -312,6 +362,7 @@ const SolutionsPage = () => {
         };
     }).filter(Boolean);
 
+    // pendingLiters: вода + жидкие добавки (мл → л) + твёрдые добавки (1 г ≈ 1 мл ≈ 0.001 л)
     const pendingLiters = (() => {
         let sum = 0;
         const water = parseFloat(waterLiters);
@@ -319,13 +370,34 @@ const SolutionsPage = () => {
 
         additives.forEach((row) => {
             const additive = solutionAdditives.find((s) => s.id === row.additiveId);
-            if (additive && additive.form === 'liquid' && row.volume) {
-                const v = parseFloat(row.volume);
-                if (!isNaN(v) && v > 0) sum += v / 1000;
+            if (!additive || !row.volume) return;
+
+            const v = parseFloat(row.volume);
+            if (isNaN(v) || v <= 0) return;
+
+            if (additive.form === 'liquid') {
+                sum += v / 1000;
+            } else if (additive.form === 'solid') {
+                sum += v * SOLID_GRAM_TO_LITER;
             }
         });
         return sum;
     })();
+
+    const pendingSolidGrams = (() => {
+        let sum = 0;
+        additives.forEach((row) => {
+            const additive = solutionAdditives.find((s) => s.id === row.additiveId);
+            if (additive && additive.form === 'solid' && row.volume) {
+                const v = parseFloat(row.volume);
+                if (!isNaN(v) && v > 0) sum += v;
+            }
+        });
+        return sum;
+    })();
+
+    // Остаток места в баке после добавления всех компонентов
+    const remainingAfterPending = Math.max(0, freeLiters - pendingLiters);
 
     const exceedsTank = activeTank && pendingLiters > freeLiters;
     const enteredWater = parseFloat(waterLiters);
@@ -388,7 +460,6 @@ const SolutionsPage = () => {
         );
         if (check.status === 'ok' || check.status === 'unknown') return null;
 
-        // Проверяем «сильное превышение» — сверх soft limit
         const vol = parseFloat(row.volume) || 0;
         const expectedMax = check.expected?.max || 0;
         const isStrongOver =
@@ -404,8 +475,6 @@ const SolutionsPage = () => {
         };
     }).filter(Boolean);
 
-    // Блокировка: только несовместимость и превышение объёма.
-    // Дозировки и «уже в баке» — не блокируют.
     const canMix = allViolations.length === 0 && !exceedsTank;
 
     // Замешать
@@ -455,6 +524,8 @@ const SolutionsPage = () => {
 
             if (additive.form === 'liquid') {
                 addedLiters += v / 1000;
+            } else if (additive.form === 'solid') {
+                addedLiters += v * SOLID_GRAM_TO_LITER;
             }
         });
 
@@ -475,8 +546,6 @@ const SolutionsPage = () => {
             })
         );
 
-        // Показываем тост
-        const totalAdded = newItems.reduce((sum, it) => sum + it.amount, 0);
         setToastMessage(
             `Вы замешали раствор в «${activeTank.name}»: добавлено ${newItems.length} компонент(ов).`
         );
@@ -586,11 +655,12 @@ const SolutionsPage = () => {
                                 <p className="hint-modal__text">Укажите объём нового бака:</p>
                                 <div className="hint-modal__input-row">
                                     <input
-                                        type="number"
-                                        min="1"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={newTankVolume}
-                                        onChange={(e) => setNewTankVolume(e.target.value)}
+                                        onChange={(e) => setNewTankVolume(sanitizeTankVolume(e.target.value))}
                                         className="hint-modal__input"
+                                        placeholder="2000"
                                         autoFocus
                                     />
                                     <span>л.</span>
@@ -623,11 +693,12 @@ const SolutionsPage = () => {
                     <div className="tank-volume__row">
                         <label>Объём бака</label>
                         <input
-                            type="number"
-                            min="1"
-                            value={activeTank.volume}
+                            type="text"
+                            inputMode="decimal"
+                            value={activeTank.volume === 0 ? '' : activeTank.volume}
                             onChange={(e) => handleTankVolumeChange(e.target.value)}
                             className="tank-volume__input"
+                            placeholder="2000"
                         />
                         <span>л.</span>
                     </div>
@@ -696,13 +767,13 @@ const SolutionsPage = () => {
                     <div className="mix-add__row">
                         <label>Сколько добавить добавок</label>
                         <input
-                            type="number"
-                            min="0"
-                            max={MAX_ADDITIVES}
+                            type="text"
+                            inputMode="numeric"
                             value={additivesCount}
                             onChange={(e) => handleAdditivesCountChange(e.target.value)}
                             className="mix-add__input"
                             placeholder={`0–${MAX_ADDITIVES}`}
+                            title={`Максимум: ${MAX_ADDITIVES}`}
                         />
                         <span>шт.</span>
                     </div>
@@ -714,12 +785,10 @@ const SolutionsPage = () => {
                                 const unit = additive ? getUnitForForm(additive.form) : '';
                                 const base = getDoseBase();
 
-                                // id, которые уже выбраны в других строках
                                 const usedElsewhere = additives
                                     .map((r, i) => (i === index ? null : r.additiveId))
                                     .filter(Boolean);
 
-                                // Доступные добавки: все, кроме выбранных в других строках
                                 const availableAdditives = solutionAdditives.filter(
                                     (s) => !usedElsewhere.includes(s.id)
                                 );
@@ -753,9 +822,8 @@ const SolutionsPage = () => {
                                         </select>
 
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
+                                            type="text"
+                                            inputMode="decimal"
                                             className={
                                                 'mix-add__input mix-add__input--volume' +
                                                 (isInvalid ? ' mix-add__input--invalid' : '')
@@ -777,15 +845,23 @@ const SolutionsPage = () => {
                         </div>
                     )}
 
-                    {pendingLiters > 0 && (
+                    {(pendingLiters > 0 || pendingSolidGrams > 0) && (
                         <div className="mix-add__summary">
-                            К добавлению: <b>{pendingLiters.toFixed(2)} л</b>
-                            {' · '}свободно в баке: <b>{freeLiters.toFixed(2)} л</b>
+                            <div className="mix-add__summary-line">
+                                К добавлению: <b>{pendingLiters.toFixed(2)} л</b>
+                                {pendingSolidGrams > 0 && (
+                                    <>
+                                        {' '}(вкл. <b>{pendingSolidGrams.toFixed(2)}</b> гр)
+                                    </>
+                                )}
+                            </div>
+                            <div className="mix-add__summary-line">
+                                Остаток места в баке: <b>{remainingAfterPending.toFixed(2)} л</b>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Превышение объёма — блокирует */}
                 {exceedsTank && (
                     <div className="mix-warning mix-warning--danger">
                         <div className="mix-warning__title">⚠ Превышен объём бака:</div>
@@ -796,7 +872,6 @@ const SolutionsPage = () => {
                     </div>
                 )}
 
-                {/* Несовместимость между выбранными — блокирует */}
                 {violationsAmongSelected.length > 0 && (
                     <div className="mix-warning mix-warning--danger">
                         <div className="mix-warning__title">⚠ Несовместимые добавки между собой:</div>
@@ -808,7 +883,6 @@ const SolutionsPage = () => {
                     </div>
                 )}
 
-                {/* Несовместимость с содержимым бака — блокирует */}
                 {violationsWithTank.length > 0 && (
                     <div className="mix-warning mix-warning--danger">
                         <div className="mix-warning__title">
@@ -824,7 +898,6 @@ const SolutionsPage = () => {
                     </div>
                 )}
 
-                {/* «Уже в баке» — НЕ блокирует */}
                 {alreadyInTankWarnings.length > 0 && (
                     <div className="mix-warning mix-warning--warning">
                         <div className="mix-warning__title">
@@ -841,7 +914,6 @@ const SolutionsPage = () => {
                     </div>
                 )}
 
-                {/* Дозировка вне диапазона — НЕ блокирует */}
                 {doseWarnings.length > 0 && (
                     <div
                         className={
