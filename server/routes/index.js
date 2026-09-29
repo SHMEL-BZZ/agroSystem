@@ -30,4 +30,5 @@ router.use('/condition', dailyConditionRouter)
 router.use('/drain', drainHistoryRouter)
 router.use('/generators', generatorRouter)
 
+
 module.exports = router

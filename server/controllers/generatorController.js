@@ -47,10 +47,12 @@ const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
 const runningJobs = new Map()
 
 class GeneratorController {
+    // GET /api/generators — список доступных генераторов
     async list(req, res) {
         return res.json(Object.keys(GENERATORS))
     }
 
+    // POST /api/generators/:name/run — запустить генератор
     async run(req, res, next) {
         try {
             const { name } = req.params
@@ -122,6 +124,7 @@ class GeneratorController {
         }
     }
 
+    // GET /api/generators/:name/status — статус запуска
     async status(req, res, next) {
         try {
             const { name } = req.params
@@ -139,7 +142,8 @@ class GeneratorController {
             return next(ApiError.internal(e.message))
         }
     }
-    // GET /api/generators/:name/data?date=YYYY-MM-DD
+
+    // GET /api/generators/:name/data?date=YYYY-MM-DD — данные за дату
     async data(req, res, next) {
         try {
             const { name } = req.params
@@ -149,18 +153,16 @@ class GeneratorController {
                 return next(ApiError.badRequest('Параметр date обязателен'))
             }
 
-            // Диапазон суток: с 00:00:00 до 23:59:59 указанной даты
-            const start = new Date(date + 'T00:00:00.000Z')
-            const end = new Date(date + 'T23:59:59.999Z')
-
             let rows = []
 
             if (name === 'devices-summer' || name === 'devices-offseason' || name === 'devices-test') {
                 rows = await DailyCondition.findAll({
-                    where: { date: date },              // ← просто строка 'YYYY-MM-DD'
+                    where: { date: date },
                     order: [['date', 'ASC']],
                 })
             } else if (name === 'drainage') {
+                const start = new Date(date + 'T00:00:00.000Z')
+                const end = new Date(date + 'T23:59:59.999Z')
                 rows = await DrainHistory.findAll({
                     where: {
                         measurementTime: { [Op.between]: [start, end] },

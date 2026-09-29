@@ -73,6 +73,7 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login as loginRequest } from '../http/userAPI';
+import { setToken } from '../utils/authToken';
 import { Context } from '../index';
 import './LoginPage.css';
 
