@@ -4,22 +4,39 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 
+// Форматирование коротких дат для оси X (2026-09-15 → 15.09)
+const formatDateTick = (value) => {
+    if (typeof value !== 'string') return value;
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return value;
+    return `${m[3]}.${m[2]}`;
+};
+
 const ChartRenderer = ({ config }) => {
     if (!config) return null;
 
     const { type, xKey, data, series, xLabel, yLeftLabel, yRightLabel } = config;
-    const hasRightAxis = series.some((s) => s.yAxisId === 'right');
+    const safeSeries = Array.isArray(series) ? series : [];
+    const safeData = Array.isArray(data) ? data : [];
+    const hasRightAxis = safeSeries.some((s) => s.yAxisId === 'right');
+    const isDateAxis = xKey === 'date';
 
-    const unitByKey = series.reduce((acc, s) => {
+    // Карта единиц измерения по ключу серии
+    const unitByKey = safeSeries.reduce((acc, s) => {
         acc[s.key] = s.unit || '';
         return acc;
     }, {});
 
+    // Tooltip: аккуратно скрываем null/undefined
     const formatTooltip = (value, name, props) => {
+        if (value === null || value === undefined || value === '') {
+            return ['—', name];
+        }
         const unit = unitByKey[props.dataKey] || '';
         return [`${value} ${unit}`.trim(), name];
     };
 
+    // Общая конфигурация осей
     const commonAxes = (
         <>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -27,6 +44,9 @@ const ChartRenderer = ({ config }) => {
             <XAxis
                 dataKey={xKey}
                 tick={{ fontSize: 12 }}
+                tickFormatter={isDateAxis ? formatDateTick : undefined}
+                interval="preserveStartEnd"
+                minTickGap={20}
                 label={
                     xLabel
                         ? {
@@ -42,7 +62,6 @@ const ChartRenderer = ({ config }) => {
 
             <YAxis
                 yAxisId="left"
-                domain={['auto', 'auto']}
                 tick={{ fontSize: 12 }}
                 width={yLeftLabel ? 70 : 50}
                 label={
@@ -61,7 +80,6 @@ const ChartRenderer = ({ config }) => {
                 <YAxis
                     yAxisId="right"
                     orientation="right"
-                    domain={['auto', 'auto']}
                     tick={{ fontSize: 12 }}
                     width={yRightLabel ? 70 : 50}
                     label={
@@ -82,15 +100,36 @@ const ChartRenderer = ({ config }) => {
         </>
     );
 
-    // Отступы нужно увеличить, чтобы подписи осей не обрезались
-    const margin = { top: 20, right: hasRightAxis ? 40 : 20, left: 10, bottom: xLabel ? 50 : 20 };
+    const margin = {
+        top: 20,
+        right: hasRightAxis ? 40 : 20,
+        left: 10,
+        bottom: xLabel ? 50 : 20,
+    };
+
+    if (!safeData.length) {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#888',
+                    fontSize: 14,
+                }}
+            >
+                Нет данных за выбранный период
+            </div>
+        );
+    }
 
     if (type === 'bar') {
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={margin}>
+                <BarChart data={safeData} margin={margin}>
                     {commonAxes}
-                    {series.map((s) => (
+                    {safeSeries.map((s) => (
                         <Bar
                             key={s.key}
                             dataKey={s.key}
@@ -98,6 +137,7 @@ const ChartRenderer = ({ config }) => {
                             fill={s.color}
                             yAxisId={s.yAxisId || 'left'}
                             radius={[4, 4, 0, 0]}
+                            maxBarSize={60}
                         />
                     ))}
                 </BarChart>
@@ -108,9 +148,9 @@ const ChartRenderer = ({ config }) => {
     if (type === 'area') {
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data} margin={margin}>
+                <AreaChart data={safeData} margin={margin}>
                     {commonAxes}
-                    {series.map((s) => (
+                    {safeSeries.map((s) => (
                         <Area
                             key={s.key}
                             type="monotone"
@@ -119,6 +159,7 @@ const ChartRenderer = ({ config }) => {
                             stroke={s.color}
                             fill={s.color}
                             fillOpacity={0.3}
+                            connectNulls
                             yAxisId={s.yAxisId || 'left'}
                         />
                     ))}
@@ -129,9 +170,9 @@ const ChartRenderer = ({ config }) => {
 
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={margin}>
+            <LineChart data={safeData} margin={margin}>
                 {commonAxes}
-                {series.map((s) => (
+                {safeSeries.map((s) => (
                     <Line
                         key={s.key}
                         type="monotone"
@@ -142,6 +183,7 @@ const ChartRenderer = ({ config }) => {
                         strokeDasharray={s.dashed ? '6 4' : undefined}
                         dot={{ r: 3 }}
                         activeDot={{ r: 5 }}
+                        connectNulls
                         yAxisId={s.yAxisId || 'left'}
                     />
                 ))}

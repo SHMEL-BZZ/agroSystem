@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import './ChartsPage.css';
 import ChartRenderer from '../components/ChartRenderer';
 import { fetchChartData } from '../data/chartsData';
+import { getAvailableRange } from '../api/chartsApi';
 
 const ChartsPage = () => {
     const charts = [
@@ -16,29 +17,63 @@ const ChartsPage = () => {
         { id: 'consumption', title: 'Расход воды и удобрений', description: 'Накопительные графики кубометров воды и литров маточных растворов (по каналам A, B, C).' },
     ];
 
-    const AVAILABLE_DATES = [
-        '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18',
-        '2026-09-19', '2026-09-20', '2026-09-21',
-    ];
-
-    const DEFAULT_DATE_FROM = AVAILABLE_DATES[0];
-    const DEFAULT_DATE_TO = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
-
     const [activeId, setActiveId] = useState(charts[0].id);
     const [chartConfig, setChartConfig] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Диапазон дат
-    const [dateFrom, setDateFrom] = useState(DEFAULT_DATE_FROM);
-    const [dateTo, setDateTo] = useState(DEFAULT_DATE_TO);
+    // ─── Диапазон дат с сервера ───
+    const [availableRange, setAvailableRange] = useState({ min: null, max: null });
+    const [rangeLoading, setRangeLoading] = useState(true);
+
+    // Выбранный пользователем диапазон
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     const activeChart = charts.find((c) => c.id === activeId);
 
-    // Режим: день / диапазон — по выбранным датам
-    const isSingleDay = dateFrom === dateTo;
+    // Режим: день / диапазон
+    const isSingleDay = dateFrom && dateTo && dateFrom === dateTo;
 
-    // Загрузка графика
+    // ─── Загрузка доступного диапазона ───
     useEffect(() => {
+        let cancelled = false;
+        setRangeLoading(true);
+
+        getAvailableRange()
+            .then(({ min, max }) => {
+                if (cancelled) return;
+                setAvailableRange({ min, max });
+
+                // Дефолтные значения: если есть данные — весь диапазон,
+                // иначе — сегодня-сегодня (пользователь сам выберет)
+                if (min && max) {
+                    setDateFrom(min);
+                    setDateTo(max);
+                } else {
+                    const today = new Date().toISOString().slice(0, 10);
+                    setDateFrom(today);
+                    setDateTo(today);
+                }
+            })
+            .catch((err) => {
+                console.error('Ошибка загрузки диапазона дат:', err);
+                if (cancelled) return;
+                setAvailableRange({ min: null, max: null });
+                const today = new Date().toISOString().slice(0, 10);
+                setDateFrom(today);
+                setDateTo(today);
+            })
+            .finally(() => {
+                if (!cancelled) setRangeLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, []);
+
+    // ─── Загрузка графика ───
+    useEffect(() => {
+        if (!dateFrom || !dateTo) return;
+
         let cancelled = false;
         setLoading(true);
         setChartConfig(null);
@@ -60,8 +95,8 @@ const ChartsPage = () => {
 
     // ─── Обработчики с валидацией ───
     const handleDateFromChange = (value) => {
-        if (value > dateTo) {
-            // если новая "С" позже "По" — двигаем и "По"
+        if (!value) return;
+        if (dateTo && value > dateTo) {
             setDateFrom(value);
             setDateTo(value);
         } else {
@@ -70,14 +105,24 @@ const ChartsPage = () => {
     };
 
     const handleDateToChange = (value) => {
-        if (value < dateFrom) {
-            // если новая "По" раньше "С" — двигаем и "С"
+        if (!value) return;
+        if (dateFrom && value < dateFrom) {
             setDateTo(value);
             setDateFrom(value);
         } else {
             setDateTo(value);
         }
     };
+
+    if (rangeLoading) {
+        return (
+            <div className="charts-page">
+                <div className="charts-plot__placeholder" style={{ margin: 'auto' }}>
+                    <p>Загрузка доступного периода…</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="charts-page">
@@ -108,8 +153,8 @@ const ChartsPage = () => {
                         <label>С</label>
                         <input
                             type="date"
-                            min={AVAILABLE_DATES[0]}
-                            max={dateTo}
+                            min={availableRange.min || undefined}
+                            max={dateTo || availableRange.max || undefined}
                             value={dateFrom}
                             onChange={(e) => handleDateFromChange(e.target.value)}
                             className="charts-filters__input"
@@ -120,8 +165,8 @@ const ChartsPage = () => {
                         <label>По</label>
                         <input
                             type="date"
-                            min={dateFrom}
-                            max={AVAILABLE_DATES[AVAILABLE_DATES.length - 1]}
+                            min={dateFrom || availableRange.min || undefined}
+                            max={availableRange.max || undefined}
                             value={dateTo}
                             onChange={(e) => handleDateToChange(e.target.value)}
                             className="charts-filters__input"
