@@ -13,6 +13,7 @@ const solutionCompositionRouter = require('./solutionCompositionRouter')
 const wateringHistoryRouter = require('./wateringHistoryRouter')
 const dailyConditionRouter = require('./dailyConditionRouter')
 const drainHistoryRouter = require('./drainHistoryRouter')
+const generatorRouter = require('./generatorRouter')
 
 // Подключение. Пути слева — то, что ждёт клиент в ENDPOINTS.
 // Файлы справа — то, что у тебя реально лежит в routes/.
@@ -27,5 +28,7 @@ router.use('/solution-composition', solutionCompositionRouter)
 router.use('/watering', wateringHistoryRouter)
 router.use('/condition', dailyConditionRouter)
 router.use('/drain', drainHistoryRouter)
+router.use('/generators', generatorRouter)
+
 
 module.exports = router

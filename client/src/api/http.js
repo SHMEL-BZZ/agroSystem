@@ -17,7 +17,13 @@ export async function request(endpoint, options = {}) {
         isFormData = false,
     } = options;
 
-    const url = `${API_BASE_URL}${endpoint}`;
+    // Если API_BASE_URL не содержит /api — добавляем его
+    const base = API_BASE_URL.endsWith('/api') || API_BASE_URL.endsWith('/api/')
+        ? API_BASE_URL.replace(/\/+$/, '')                       // убираем слэши на конце
+        : API_BASE_URL.replace(/\/+$/, '') + '/api';             // добавляем /api
+
+    const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    const url = `${base}${path}`;
 
     const finalHeaders = {
         ...headers,

@@ -1,13 +1,13 @@
-// // src/http/userAPI.js
-// // Ìîê-âåğñèÿ API: ğàáîòàåò áåç ñåğâåğà, âñ¸ õğàíèòñÿ â localStorage.
+ï»¿// // src/http/userAPI.js
+// // ĞœĞ¾Ğº-Ğ²ĞµÑ€ÑĞ¸Ñ API: Ñ€Ğ°Ğ±Ğ¾Ñ‚Ğ°ĞµÑ‚ Ğ±ĞµĞ· ÑĞµÑ€Ğ²ĞµÑ€Ğ°, Ğ²ÑÑ‘ Ñ…Ñ€Ğ°Ğ½Ğ¸Ñ‚ÑÑ Ğ² localStorage.
 
-// const USERS_KEY = 'mock_users'; // ñïèñîê çàğåãèñòğèğîâàííûõ ïîëüçîâàòåëåé
-// const DELAY = 300;              // èìèòàöèÿ çàäåğæêè ñåòè, ìñ
+// const USERS_KEY = 'mock_users'; // ÑĞ¿Ğ¸ÑĞ¾Ğº Ğ·Ğ°Ñ€ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ¸Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ½Ñ‹Ñ… Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»ĞµĞ¹
+// const DELAY = 300;              // Ğ¸Ğ¼Ğ¸Ñ‚Ğ°Ñ†Ğ¸Ñ Ğ·Ğ°Ğ´ĞµÑ€Ğ¶ĞºĞ¸ ÑĞµÑ‚Ğ¸, Ğ¼Ñ
 
-// // Èñêóññòâåííàÿ çàäåğæêà, ÷òîáû UX áûë ïîõîæ íà ğåàëüíûé çàïğîñ
+// // Ğ˜ÑĞºÑƒÑÑÑ‚Ğ²ĞµĞ½Ğ½Ğ°Ñ Ğ·Ğ°Ğ´ĞµÑ€Ğ¶ĞºĞ°, Ñ‡Ñ‚Ğ¾Ğ±Ñ‹ UX Ğ±Ñ‹Ğ» Ğ¿Ğ¾Ñ…Ğ¾Ğ¶ Ğ½Ğ° Ñ€ĞµĞ°Ğ»ÑŒĞ½Ñ‹Ğ¹ Ğ·Ğ°Ğ¿Ñ€Ğ¾Ñ
 // const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// // Áåçîïàñíîå ÷òåíèå ñïèñêà ïîëüçîâàòåëåé
+// // Ğ‘ĞµĞ·Ğ¾Ğ¿Ğ°ÑĞ½Ğ¾Ğµ Ñ‡Ñ‚ĞµĞ½Ğ¸Ğµ ÑĞ¿Ğ¸ÑĞºĞ° Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»ĞµĞ¹
 // const readUsers = () => {
 //     try {
 //         return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
@@ -16,16 +16,16 @@
 //     }
 // };
 
-// // Ñîõğàíåíèå ñïèñêà ïîëüçîâàòåëåé
+// // Ğ¡Ğ¾Ñ…Ñ€Ğ°Ğ½ĞµĞ½Ğ¸Ğµ ÑĞ¿Ğ¸ÑĞºĞ° Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»ĞµĞ¹
 // const writeUsers = (users) => {
 //     localStorage.setItem(USERS_KEY, JSON.stringify(users));
 // };
 
-// // Ñîçäàíèå "òîêåíà" (ïğîñòî base64-ñòğîêà, áåç ïîäïèñè)
+// // Ğ¡Ğ¾Ğ·Ğ´Ğ°Ğ½Ğ¸Ğµ "Ñ‚Ğ¾ĞºĞµĞ½Ğ°" (Ğ¿Ñ€Ğ¾ÑÑ‚Ğ¾ base64-ÑÑ‚Ñ€Ğ¾ĞºĞ°, Ğ±ĞµĞ· Ğ¿Ğ¾Ğ´Ğ¿Ğ¸ÑĞ¸)
 // const makeToken = (login) =>
 //     btoa(JSON.stringify({ login, iat: Date.now() }));
 
-// // Äåêîäèğîâàíèå "òîêåíà"
+// // Ğ”ĞµĞºĞ¾Ğ´Ğ¸Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ğµ "Ñ‚Ğ¾ĞºĞµĞ½Ğ°"
 // const decodeToken = (token) => {
 //     try {
 //         return JSON.parse(atob(token));
@@ -34,13 +34,13 @@
 //     }
 // };
 
-// // Ğåãèñòğàöèÿ
+// // Ğ ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ°Ñ†Ğ¸Ñ
 // export const registration = async (login, password) => {
 //     await wait(DELAY);
 
 //     const users = readUsers();
 //     if (users.some((u) => u.login === login)) {
-//         const err = new Error('Ïîëüçîâàòåëü ñ òàêèì ëîãèíîì óæå ñóùåñòâóåò');
+//         const err = new Error('ĞŸĞ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»ÑŒ Ñ Ñ‚Ğ°ĞºĞ¸Ğ¼ Ğ»Ğ¾Ğ³Ğ¸Ğ½Ğ¾Ğ¼ ÑƒĞ¶Ğµ ÑÑƒÑ‰ĞµÑÑ‚Ğ²ÑƒĞµÑ‚');
 //         err.response = { data: { message: err.message } };
 //         throw err;
 //     }
@@ -53,7 +53,7 @@
 //     return decodeToken(token);
 // };
 
-// // Âõîä
+// // Ğ’Ñ…Ğ¾Ğ´
 // export const login = async (login, password) => {
 //     await wait(DELAY);
 
@@ -63,7 +63,7 @@
 //     );
 
 //     if (!found) {
-//         const err = new Error('Íåâåğíûé ëîãèí èëè ïàğîëü');
+//         const err = new Error('ĞĞµĞ²ĞµÑ€Ğ½Ñ‹Ğ¹ Ğ»Ğ¾Ğ³Ğ¸Ğ½ Ğ¸Ğ»Ğ¸ Ğ¿Ğ°Ñ€Ğ¾Ğ»ÑŒ');
 //         err.response = { data: { message: err.message } };
 //         throw err;
 //     }
@@ -73,20 +73,20 @@
 //     return decodeToken(token);
 // };
 
-// // Ïğîâåğêà òîêåíà (íàïğèìåğ, ïğè ïåğåçàãğóçêå ñòğàíèöû)
+// // ĞŸÑ€Ğ¾Ğ²ĞµÑ€ĞºĞ° Ñ‚Ğ¾ĞºĞµĞ½Ğ° (Ğ½Ğ°Ğ¿Ñ€Ğ¸Ğ¼ĞµÑ€, Ğ¿Ñ€Ğ¸ Ğ¿ĞµÑ€ĞµĞ·Ğ°Ğ³Ñ€ÑƒĞ·ĞºĞµ ÑÑ‚Ñ€Ğ°Ğ½Ğ¸Ñ†Ñ‹)
 // export const check = async () => {
 //     await wait(DELAY);
 
 //     const token = localStorage.getItem('token');
 //     if (!token) {
-//         const err = new Error('Íå àâòîğèçîâàí');
+//         const err = new Error('ĞĞµ Ğ°Ğ²Ñ‚Ğ¾Ñ€Ğ¸Ğ·Ğ¾Ğ²Ğ°Ğ½');
 //         err.response = { data: { message: err.message } };
 //         throw err;
 //     }
 
 //     const decoded = decodeToken(token);
 //     if (!decoded) {
-//         const err = new Error('Íåêîğğåêòíûé òîêåí');
+//         const err = new Error('ĞĞµĞºĞ¾Ñ€Ñ€ĞµĞºÑ‚Ğ½Ñ‹Ğ¹ Ñ‚Ğ¾ĞºĞµĞ½');
 //         err.response = { data: { message: err.message } };
 //         throw err;
 //     }
@@ -96,34 +96,35 @@
 
 import { $authHost, $host } from "./index";
 import { jwtDecode } from "jwt-decode";
+import { setToken, getToken } from "../utils/authToken";
 
-// ğåãèñòğàöèÿ
+// Ñ€ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ°Ñ†Ğ¸Ñ
 export const registration = async (login, email, password) => {
     const { data } = await $host.post('api/user/registration', {
         login,
         email,
         password
     });
-    localStorage.setItem('token', data.token);
+    setToken(data.token);              // â† Ñ‡ĞµÑ€ĞµĞ· setToken (ĞºĞ»ÑÑ‡ auth_token)
     return jwtDecode(data.token);
 };
 
-// âõîä
+// Ğ²Ñ…Ğ¾Ğ´
 export const login = async (login, password) => {
     const { data } = await $host.post('api/user/login', { login, password });
-    localStorage.setItem('token', data.token);
+    setToken(data.token);              // â† Ñ‡ĞµÑ€ĞµĞ· setToken
     return jwtDecode(data.token);
 };
 
-// ïğîâåğêà/ïğîäëåíèå òîêåíà
+// Ğ¿Ñ€Ğ¾Ğ²ĞµÑ€ĞºĞ°/Ğ¿Ñ€Ğ¾Ğ´Ğ»ĞµĞ½Ğ¸Ğµ Ñ‚Ğ¾ĞºĞµĞ½Ğ°
 export const check = async () => {
     const { data } = await $authHost.get('api/user/auth');
-    localStorage.setItem('token', data.token);
+    setToken(data.token);
     return jwtDecode(data.token);
 };
 
-// ïîëó÷èòü äàííûå òåêóùåãî ïîëüçîâàòåëÿ (id, login, email) áåç ïàğîëÿ
+// Ğ¿Ğ¾Ğ»ÑƒÑ‡Ğ¸Ñ‚ÑŒ Ğ´Ğ°Ğ½Ğ½Ñ‹Ğµ Ñ‚ĞµĞºÑƒÑ‰ĞµĞ³Ğ¾ Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»Ñ
 export const getMe = async () => {
     const { data } = await $authHost.get('api/user/me');
-    return data; // { id, login, email }
+    return data;
 };
