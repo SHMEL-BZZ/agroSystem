@@ -15,6 +15,7 @@ const WateringPage = () => {
     const [toastMessage, setToastMessage] = useState('');
 
     // Санитайзер числового ввода: только цифры и максимум одна точка.
+    // Минус, буквы, символы — отбрасываются.
     function sanitizeNumber(value) {
         if (value === '' || value === null || value === undefined) return '';
 
@@ -32,6 +33,12 @@ const WateringPage = () => {
         return str;
     }
 
+    // Санитайзер целого числа: только цифры
+    function sanitizeInteger(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        return String(value).replace(/\D/g, '');
+    }
+
     // Настройки клапанов по периодам:
     // { [periodId]: { [valveId]: { enabled: bool, volume: string } } }
     const [valveSettingsByPeriod, setValveSettingsByPeriod] = useState({});
@@ -39,10 +46,10 @@ const WateringPage = () => {
     const [periodToDelete, setPeriodToDelete] = useState(null);
     const [activePeriodId, setActivePeriodId] = useState(1);
 
-    const [tankVolume, setTankVolume] = useState(2000);
+    const [tankVolume, setTankVolume] = useState(50000);
 
     const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
-    const [volumeDraft, setVolumeDraft] = useState('2000');
+    const [volumeDraft, setVolumeDraft] = useState('50000');
 
     const [sourceTanks] = useState([
         {
@@ -163,7 +170,7 @@ const WateringPage = () => {
         }
 
         if (field === 'duration') {
-            value = String(value).replace(/\D/g, '');
+            value = sanitizeInteger(value);
             if (value !== '') {
                 value = String(parseInt(value, 10) || 0);
                 if (parseInt(value, 10) > MAX_DURATION_MIN) {
@@ -379,7 +386,11 @@ const WateringPage = () => {
             setTankRowsByPeriod((prev) => ({ ...prev, [periodId]: [] }));
             return;
         }
-        let num = parseInt(value, 10);
+
+        let str = sanitizeInteger(value);
+        if (str === '') return;
+
+        let num = parseInt(str, 10);
         if (isNaN(num)) return;
         if (num < 0) num = 0;
         if (num > MAX_TANKS) num = MAX_TANKS;
@@ -573,10 +584,8 @@ const WateringPage = () => {
                                     {periods.map((p) => (
                                         <td key={p.id}>
                                             <input
-                                                type="number"
-                                                min="0"
-                                                max={tankVolume}
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
                                                 className="watering-table__input"
                                                 placeholder={`до ${tankVolume}`}
                                                 value={p.volume}
@@ -693,10 +702,10 @@ const WateringPage = () => {
                                 </p>
                                 <div className="hint-modal__input-row">
                                     <input
-                                        type="number"
-                                        min="1"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={volumeDraft}
-                                        onChange={(e) => setVolumeDraft(e.target.value)}
+                                        onChange={(e) => setVolumeDraft(sanitizeNumber(e.target.value))}
                                         className="hint-modal__input"
                                         autoFocus
                                     />
@@ -730,9 +739,8 @@ const WateringPage = () => {
                                 Сколько баков будет задействовано?
                             </label>
                             <input
-                                type="number"
-                                min="0"
-                                max={MAX_TANKS}
+                                type="text"
+                                inputMode="numeric"
                                 className="distribution__input distribution__input--count"
                                 value={activeRows.length || ''}
                                 placeholder={`0–${MAX_TANKS}`}
@@ -794,10 +802,8 @@ const WateringPage = () => {
                                             </div>
 
                                             <input
-                                                type="number"
-                                                min="0"
-                                                max={tankVolume}
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
                                                 className="distribution__input"
                                                 placeholder={`до ${tankVolume}`}
                                                 value={row.volume}
@@ -875,10 +881,8 @@ const WateringPage = () => {
                                     <span className="valves-block__name">{valve.name}</span>
 
                                     <input
-                                        type="number"
-                                        min="0"
-                                        max={activePeriodVolume}
-                                        step="0.01"
+                                        type="text"
+                                        inputMode="decimal"
                                         className="valves-block__input"
                                         placeholder={`до ${activePeriodVolume}`}
                                         value={setting.volume}
