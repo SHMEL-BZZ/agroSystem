@@ -7,6 +7,7 @@ import './RegisterPage.css';
 const RegisterPage = () => {
     const [form, setForm] = useState({
         login: '',
+        email: '',
         password: '',
         confirmPassword: '',
     });
@@ -26,7 +27,10 @@ const RegisterPage = () => {
         }
 
         try {
-            const decodedUser = await registration(form.login, form.password);
+            const decodedUser = await
+
+
+                registration(form.login, form.email, form.password);
 
             user.setUser(decodedUser);
             user.setIsAuth(true);
