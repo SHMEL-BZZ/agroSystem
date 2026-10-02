@@ -1,10 +1,13 @@
-import { http } from './http';
+import { $authHost } from '../http';
 
-export const chartsApi = {
-    // type — 'drainage' | 'ec-ph' | 'watering' | ...
-    // params — { from: '2026-09-15', to: '2026-09-21' }
-    getData: (type, params) => {
-        const query = new URLSearchParams(params).toString();
-        return http.get(`/charts/${type}?${query}`);
-    },
+export const getChartData = async (chartId, { dateFrom, dateTo }) => {
+    const { data } = await $authHost.get(`/api/charts/${chartId}`, {
+        params: { dateFrom, dateTo },
+    });
+    return data.data;
+};
+
+export const getAvailableRange = async () => {
+    const { data } = await $authHost.get('/api/charts/available-range');
+    return data;
 };
