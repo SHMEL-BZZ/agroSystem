@@ -1,4 +1,4 @@
-const { Valve } = require('../models/models')
+const { Valve, GreenhouseBlock } = require('../models/models')
 const ApiError = require('../error/ApiError')
 
 const VALID_TYPES = ['электромагнитный', 'шаровый', 'дисковый', 'игольчатый']
@@ -48,7 +48,7 @@ class ValveController {
     // GET /api/valve
     async getAll(req, res, next) {
         try {
-            const valves = await Valve.findAll()
+            const valves = await Valve.findAll({ include: ['blocks'] })
             return res.json(valves)
         } catch (e) {
             return next(ApiError.internal(e.message))
@@ -107,6 +107,62 @@ class ValveController {
             return res.json({ message: 'Клапан удалён' })
         } catch (e) {
             return next(ApiError.internal(e.message))
+        }
+    }
+
+    async addGreenhouse(req, res) {
+        try {
+            const { id } = req.params; // id клапана
+            const { blockId, name, description } = req.body;
+
+            const valve = await Valve.findByPk(id);
+            if (!valve) {
+                return res.status(404).json({ message: 'Клапан не найден' });
+            }
+
+            let block;
+
+            if (blockId) {
+                // Вариант 1: Привязываем существующую теплицу
+                block = await GreenhouseBlock.findByPk(blockId);
+                if (!block) {
+                    return res.status(404).json({ message: 'Теплица не найдена' });
+                }
+            } else if (name) {
+                // Вариант 2: Создаем новую теплицу и сразу привязываем
+                block = await GreenhouseBlock.create({ name, description });
+            } else {
+                return res.status(400).json({ message: 'Укажите blockId существующей теплицы или name для новой' });
+            }
+
+            // Используем магический метод Sequelize для связи M2M (alias 'blocks' из вашей модели)
+            await valve.addBlock(block);
+
+            return res.json({ message: 'Теплица успешно привязана к клапану', block });
+
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Ошибка при привязке теплицы' });
+        }
+    }
+
+    // отвязка теплицы от клапана
+    async removeGreenhouse(req, res) {
+        try {
+            const { id, blockId } = req.params;
+
+            const valve = await Valve.findByPk(id);
+            if (!valve) return res.status(404).json({ message: 'Клапан не найден' });
+
+            const block = await GreenhouseBlock.findByPk(blockId);
+            if (!block) return res.status(404).json({ message: 'Теплица не найдена' });
+
+            await valve.removeBlock(block); // Метод Sequelize для удаления связи
+
+            return res.json({ message: 'Теплица отвязана от клапана' });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Ошибка при отвязке' });
         }
     }
 }
