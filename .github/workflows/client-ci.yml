@@ -2,9 +2,9 @@ name: Client CI
 
 on:
   push:
-    branches: [ main, master, client ]
+    branches: [ client ]
   pull_request:
-    branches: [ main, master, client ]
+    branches: [ client ]
 
 
 jobs:
