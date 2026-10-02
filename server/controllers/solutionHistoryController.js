@@ -1,4 +1,4 @@
-const { SolutionHistory, Tank } = require('../models/models')
+const { SolutionHistory, Tank, SolutionComposition, Additive} = require('../models/models')
 const ApiError = require('../error/ApiError')
 
 // исотрия раствора контроллер
@@ -58,7 +58,14 @@ class SolutionHistoryController {
                 limit: Number(limit),
                 offset: Number(offset),
                 order: [['date', 'DESC']],
-                include: [{ model: Tank, as: 'tank' }]
+                include: [
+                    { model: Tank, as: 'tank' },
+                    {
+                        model: SolutionComposition,
+                        as: 'composition',
+                        include: [{ model: Additive, as: 'additive' }]
+                    }
+                ]
             })
             return res.json(solutions)
 

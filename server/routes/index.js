@@ -27,5 +27,6 @@ router.use('/solution-composition', solutionCompositionRouter)
 router.use('/watering', wateringHistoryRouter)
 router.use('/condition', dailyConditionRouter)
 router.use('/drain', drainHistoryRouter)
+router.use('/solution-history', solutionHistoryRouter)
 
 module.exports = router

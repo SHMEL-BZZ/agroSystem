@@ -46,7 +46,13 @@ class SolutionCompositionController {
 
     async getAll(req, res, next) {
         try {
+            const { solutionId, additiveId } = req.query
+            const where = {}
+            if (solutionId) where.solutionId = solutionId
+            if (additiveId) where.additiveId = additiveId
+
             const compositions = await SolutionComposition.findAll({
+                where,
                 include: [
                     { model: SolutionHistory, as: 'solution' },
                     { model: Additive, as: 'additive' }
