@@ -8,5 +8,7 @@ router.get('/', valveController.getAll)
 router.get('/:id', valveController.getOne)
 router.put('/:id', authMiddleware, valveController.update)
 router.delete('/:id', authMiddleware, valveController.delete)
-
+// роуты для связей
+router.post('/:id/greenhouses', authMiddleware, valveController.addGreenhouse)
+router.delete('/:id/greenhouses/:blockId', authMiddleware, valveController.removeGreenhouse)
 module.exports = router 

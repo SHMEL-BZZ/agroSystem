@@ -32,7 +32,9 @@ class GreenhouseBlockController {
     // GET /api/greenhouse-block
     async getAll(req, res, next) {
         try {
-            const blocks = await GreenhouseBlock.findAll()
+            const blocks = await GreenhouseBlock.findAll({
+                include: ['valves']
+            })
             return res.json(blocks)
         } catch (e) {
             return next(ApiError.internal(e.message))
