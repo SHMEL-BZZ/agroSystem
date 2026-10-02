@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ client ]
 
-
 jobs:
   test-client:
     runs-on: ubuntu-latest
@@ -16,22 +15,28 @@ jobs:
         working-directory: ./client
 
     steps:
-      # 1. ��������� ����������� � runner
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. ������������� Node.js 20 � �������� ��� npm
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: './client/package-lock.json'
+          cache-dependency-path: 'client/package-lock.json'
 
-      # 3. ������������� ����������� �� package-lock.json
+      # ОТЛАДОЧНЫЙ ШАГ
+      - name: Debug - Check files
+        run: |
+          echo "Текущая директория:"
+          pwd
+          echo "Файлы в текущей директории:"
+          ls -la
+          echo "Поиск package-lock.json во всем репозитории:"
+          find . -name package-lock.json
+
       - name: Install dependencies
         run: npm ci
 
-      # 4. ��������� �����
       - name: Run tests
         run: npm test -- --watchAll=false --coverage
