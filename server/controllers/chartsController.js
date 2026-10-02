@@ -59,11 +59,7 @@ async function getEcPh({ dateFrom, dateTo }) {
     return conditions.map((c) => ({
         date: toDateOnly(c.date),
         time: '12:00',
-        feedEC: parseFloat(c.avgConductivity || 0),
-        substrateEC: parseFloat(c.avgConductivity || 0),
         drainageEC: parseFloat(c.avgConductivity || 0),
-        feedPH: parseFloat(c.avgPh || 0),
-        substratePH: parseFloat(c.avgPh || 0),
         drainagePH: parseFloat(c.avgPh || 0),
     }));
 }
@@ -180,41 +176,47 @@ async function getSubstrateMoisture({ dateFrom, dateTo }) {
 }
 
 async function getConsumption({ dateFrom, dateTo }) {
+    const waterings = await WateringHistory.findAll({
+        where: {
+            startTime: {
+                [Op.between]: [`${dateFrom} 00:00:00`, `${dateTo} 23:59:59`],
+            },
+        },
+        order: [['startTime', 'ASC']],
+    });
+
+    const waterByDate = {};
+    waterings.forEach((w) => {
+        const d = toDateOnly(w.startTime);
+        waterByDate[d] = (waterByDate[d] || 0) + parseFloat(w.waterVolume || 0);
+    });
+
     const solutions = await SolutionHistory.findAll({
         where: {
             date: {
-                [Op.between]: [
-                    `${dateFrom} 00:00:00`,
-                    `${dateTo} 23:59:59`,
-                ],
+                [Op.between]: [`${dateFrom} 00:00:00`, `${dateTo} 23:59:59`],
             },
         },
-        include: [
-            {
-                model: SolutionComposition,
-                as: 'composition',
-                include: [{ model: Additive, as: 'additive' }],
-            },
-        ],
         order: [['date', 'ASC']],
     });
 
-    return solutions.map((s) => {
-        const date = toDateOnly(s.date);
-        const totalWater = parseFloat(s.totalVolume || 0);
-        const fertA = (s.composition || []).reduce(
-            (sum, c) => sum + parseFloat(c.amount || 0),
-            0
-        );
-        return {
-            date,
-            time: '12:00',
-            water: totalWater,
-            fertA,
-            fertB: 0,
-            fertC: 0,
-        };
+    const solutionByDate = {};
+    solutions.forEach((s) => {
+        const d = toDateOnly(s.date);
+        solutionByDate[d] =
+            (solutionByDate[d] || 0) + parseFloat(s.totalVolume || 0);
     });
+
+    const allDates = Array.from(
+        new Set([...Object.keys(waterByDate), ...Object.keys(solutionByDate)])
+    ).sort();
+
+    return allDates.map((date) => ({
+        date,
+        time: '12:00',
+        water: waterByDate[date] || 0,
+        solution: solutionByDate[date] || 0,
+    }));
 }
 
 const chartHandlers = {

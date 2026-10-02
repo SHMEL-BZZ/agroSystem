@@ -3,7 +3,6 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { User} = require('../models/models')
 
-// генерация токена (по id, login, ключу, длительность: 24ч)
 const generateJwt = (id, login) => {
     return jwt.sign(
         { id, login },
@@ -13,7 +12,6 @@ const generateJwt = (id, login) => {
 }
 
 class UserController {
-    // регистрация (по login и паролю)
     async registration(req, res, next) {
         const { login, password } = req.body
         if (!login || !password) {
@@ -29,7 +27,6 @@ class UserController {
         return res.json({ token })
     }
 
-    // вход (по login и паролю)
     async login(req, res, next)
     {
         try{
@@ -50,7 +47,6 @@ class UserController {
         }
     }
 
-    // проверка валидности токена (обновление/продление сессии)
     async check(req, res, next) {
         const token = generateJwt(req.user.id, req.user.login)
         return res.json({ token })

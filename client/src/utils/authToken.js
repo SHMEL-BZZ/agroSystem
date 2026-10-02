@@ -1,19 +1,4 @@
-// client/src/utils/authToken.js
-
-const TOKEN_KEY = 'auth_token';
-
-export function getToken() {
-    return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function removeToken() {
-    localStorage.removeItem(TOKEN_KEY);
-}
-
-export function hasToken() {
-    return !!getToken();
-}
+// client/src/api/http.js использует getToken() из этого файла
+export const getToken = () => localStorage.getItem('token');
+export const setToken = (t) => localStorage.setItem('token', t);
+export const removeToken = () => localStorage.removeItem('token');

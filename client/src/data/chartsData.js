@@ -23,12 +23,8 @@ export const chartConfigs = {
         yRightLabel: 'pH',
         periodType: 'day',
         series: [
-            { key: 'feedEC', name: 'EC подача', color: '#4A90E2', unit: 'мСм/см' },
-            { key: 'substrateEC', name: 'EC субстрат', color: '#2E7D32', unit: 'мСм/см' },
-            { key: 'drainageEC', name: 'EC дренаж', color: '#AE6E42', unit: 'мСм/см' },
-            { key: 'feedPH', name: 'pH подача', color: '#9C27B0', unit: 'pH', yAxisId: 'right' },
-            { key: 'substratePH', name: 'pH субстрат', color: '#FF9800', unit: 'pH', yAxisId: 'right' },
-            { key: 'drainagePH', name: 'pH дренаж', color: '#F44336', unit: 'pH', yAxisId: 'right' },
+            { key: 'drainageEC', name: 'EC дренажа', color: '#4A90E2', unit: 'мСм/см' },
+            { key: 'drainagePH', name: 'pH дренажа', color: '#9C27B0', unit: 'pH', yAxisId: 'right' },
         ],
     },
 
@@ -100,14 +96,11 @@ export const chartConfigs = {
         type: 'line',
         xKey: 'time',
         xLabel: 'Время',
-        yLeftLabel: 'Вода, м³',
-        yRightLabel: 'Удобрения, л',
+        yLeftLabel: 'Объём, л',
         periodType: 'range',
         series: [
-            { key: 'water', name: 'Вода, м³', color: '#4A90E2', unit: 'м³' },
-            { key: 'fertA', name: 'Канал A, л', color: '#AE6E42', unit: 'л', yAxisId: 'right' },
-            { key: 'fertB', name: 'Канал B, л', color: '#2E7D32', unit: 'л', yAxisId: 'right' },
-            { key: 'fertC', name: 'Канал C, л', color: '#9C27B0', unit: 'л', yAxisId: 'right' },
+            { key: 'water', name: 'Вода, л', color: '#4A90E2', unit: 'л' },
+            { key: 'solution', name: 'Раствор, л', color: '#AE6E42', unit: 'л' },
         ],
     },
 };
