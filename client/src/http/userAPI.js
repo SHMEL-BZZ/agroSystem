@@ -1,7 +1,7 @@
-import { $authHost, $host } from "./index";
+п»їimport { $authHost, $host } from "./index";
 import { jwtDecode } from "jwt-decode";
 
-// Регистрация
+// Р РµРіРёСЃС‚СЂР°С†РёСЏ
 export const registration = async (login, password) => {
     try {
         const { data } = await $host.post('/api/user/registration', {
@@ -11,16 +11,16 @@ export const registration = async (login, password) => {
         localStorage.setItem('token', data.token);
         return jwtDecode(data.token);
     } catch (e) {
-        // Пробрасываем ошибку наверх с читаемым сообщением
+        // РџСЂРѕР±СЂР°СЃС‹РІР°РµРј РѕС€РёР±РєСѓ РЅР°РІРµСЂС… СЃ С‡РёС‚Р°РµРјС‹Рј СЃРѕРѕР±С‰РµРЅРёРµРј
         const message =
             e.response?.data?.message ||
             e.message ||
-            'Ошибка регистрации';
+            'РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё';
         throw new Error(message);
     }
 };
 
-// Вход
+// Р’С…РѕРґ
 export const login = async (login, password) => {
     try {
         const { data } = await $host.post('/api/user/login', {
@@ -33,24 +33,24 @@ export const login = async (login, password) => {
         const message =
             e.response?.data?.message ||
             e.message ||
-            'Ошибка входа';
+            'РћС€РёР±РєР° РІС…РѕРґР°';
         throw new Error(message);
     }
 };
 
-// Проверка токена (например, при перезагрузке страницы)
+// РџСЂРѕРІРµСЂРєР° С‚РѕРєРµРЅР° (РЅР°РїСЂРёРјРµСЂ, РїСЂРё РїРµСЂРµР·Р°РіСЂСѓР·РєРµ СЃС‚СЂР°РЅРёС†С‹)
 export const check = async () => {
     try {
         const { data } = await $authHost.get('/api/user/auth');
         localStorage.setItem('token', data.token);
         return jwtDecode(data.token);
     } catch (e) {
-        // Если токен протух — чистим localStorage
+        // Р•СЃР»Рё С‚РѕРєРµРЅ РїСЂРѕС‚СѓС… вЂ” С‡РёСЃС‚РёРј localStorage
         localStorage.removeItem('token');
         const message =
             e.response?.data?.message ||
             e.message ||
-            'Не авторизован';
+            'РќРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ';
         throw new Error(message);
     }
 };

@@ -20,4 +20,6 @@ export const ENDPOINTS = {
     watering: '/watering',
     conditions: '/condition',
     drain: '/drain',
+    charts: '/charts',
+    generators: '/generators', 
 };

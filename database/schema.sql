@@ -435,7 +435,8 @@ ALTER SEQUENCE public."назначение_баков_id_назначения_s
 CREATE TABLE public."пользователи" (
     "id_пользователя" integer NOT NULL,
     "логин" character varying(50) NOT NULL,
-    "пароль" character varying(255) NOT NULL
+    "пароль" character varying(255) NOT NULL,
+    "почта" character varying(255)
 );
 
 
