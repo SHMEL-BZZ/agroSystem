@@ -2,10 +2,9 @@ name: Client CI
 
 on:
   push:
-    branches: [ main, master, client ]
+    branches: [ client ]
   pull_request:
-    branches: [ main, master, client ]
-
+    branches: [ client ]
 
 jobs:
   test-client:
@@ -16,22 +15,28 @@ jobs:
         working-directory: ./client
 
     steps:
-      # 1. Клонируем репозиторий в runner
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Устанавливаем Node.js 20 и включаем кэш npm
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: './client/package-lock.json'
+          cache-dependency-path: 'client/package-lock.json'
 
-      # 3. Устанавливаем зависимости по package-lock.json
+      # РћРўР›РђР”РћР§РќР«Р™ РЁРђР“
+      - name: Debug - Check files
+        run: |
+          echo "РўРµРєСѓС‰Р°СЏ РґРёСЂРµРєС‚РѕСЂРёСЏ:"
+          pwd
+          echo "Р¤Р°Р№Р»С‹ РІ С‚РµРєСѓС‰РµР№ РґРёСЂРµРєС‚РѕСЂРёРё:"
+          ls -la
+          echo "РџРѕРёСЃРє package-lock.json РІРѕ РІСЃРµРј СЂРµРїРѕР·РёС‚РѕСЂРёРё:"
+          find . -name package-lock.json
+
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # 4. Запускаем тесты
       - name: Run tests
         run: npm test -- --watchAll=false --coverage
