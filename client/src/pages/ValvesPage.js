@@ -78,6 +78,17 @@ const ValvesPage = () => {
         );
     };
 
+    // Проверка: есть ли уже теплица с таким именем (без учёта регистра и пробелов)
+    const isNameTaken = (name, ignoreId = null) => {
+        const normalized = name.trim().toLowerCase();
+        if (!normalized) return false;
+        return greenhouses.some(
+            (g) =>
+                g.id !== ignoreId &&
+                g.name.trim().toLowerCase() === normalized
+        );
+    };
+
     // ─── Модалка добавления ───
     const openAddModal = () => {
         setAddMode(freeGreenhouses.length > 0 ? 'existing' : 'new');
@@ -351,6 +362,11 @@ const ValvesPage = () => {
                                     disabled={isSubmitting}
                                     rows={3}
                                 />
+                                {nameError && (
+                                    <p className="valves-modal__error">
+                                        {nameError}
+                                    </p>
+                                )}
                             </div>
                         )}
 

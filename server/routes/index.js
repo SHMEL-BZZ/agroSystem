@@ -1,18 +1,8 @@
 const { Router } = require('express')
 const router = new Router()
 
-// Импорты роутеров
 const userRouter = require('./userRouter')
-const valveRouter = require('./valveRouter')
-const greenhouseRouter = require('./greenhouseRouter')
-const tankRouter = require('./tankRouter')
-const tankPurposeRouter = require('./tankPurposeRouter')
-const additiveRouter = require('./additiveRouter')
-const solutionHistoryRouter = require('./solutionHistoryRouter')
-const solutionCompositionRouter = require('./solutionCompositionRouter')
-const wateringHistoryRouter = require('./wateringHistoryRouter')
-const dailyConditionRouter = require('./dailyConditionRouter')
-const drainHistoryRouter = require('./drainHistoryRouter')
+const chartsRouter = require('./chartsRouter')
 
 // Подключение. Пути слева — то, что ждёт клиент в ENDPOINTS.
 // Файлы справа — то, что у тебя реально лежит в routes/.
@@ -29,4 +19,4 @@ router.use('/condition', dailyConditionRouter)
 router.use('/drain', drainHistoryRouter)
 router.use('/solution-history', solutionHistoryRouter)
 
-module.exports = router
+module.exports = router;
