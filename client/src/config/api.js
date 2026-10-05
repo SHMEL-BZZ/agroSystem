@@ -21,5 +21,6 @@ export const ENDPOINTS = {
     conditions: '/condition',
     drain: '/drain',
     charts: '/charts',
-    generators: '/generators', 
+    generators: '/generators',
+    wateringSchedule: '/watering-schedule',
 };

@@ -15,6 +15,7 @@ const wateringHistoryRouter = require('./wateringHistoryRouter')
 const dailyConditionRouter = require('./dailyConditionRouter')
 const drainHistoryRouter = require('./drainHistoryRouter')
 const generatorRouter = require('./generatorRouter')
+const wateringScheduleRouter = require('./wateringScheduleRouter')
 
 // ─── Подключение. Пути слева — то, что ждёт клиент. ──────
 router.use('/user', userRouter)
@@ -30,5 +31,6 @@ router.use('/watering', wateringHistoryRouter)
 router.use('/condition', dailyConditionRouter)
 router.use('/drain', drainHistoryRouter)
 router.use('/generators', generatorRouter)
+router.use('/watering-schedule', wateringScheduleRouter)
 
 module.exports = router

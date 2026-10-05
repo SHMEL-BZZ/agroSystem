@@ -346,13 +346,90 @@ const DrainHistory = sequelize.define('DrainHistory', {
     timestamps: false
 })
 
+// расписание полива (основная таблица)
+const WateringSchedule = sequelize.define('WateringSchedule', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        field: 'id_расписания'
+    },
+    date: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        field: 'дата'
+    },
+    periodNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'номер_периода'
+    },
+    startTime: {
+        type: DataTypes.TIME,
+        allowNull: false,
+        field: 'время_начала'
+    },
+    durationMin: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'длительность_мин'
+    },
+    periodVolume: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        field: 'объем_периода'
+    }
+}, {
+    tableName: 'расписание_полива',
+    timestamps: false
+})
+
+// связь расписания с баками (с объёмом)
+const ScheduleTank = sequelize.define('ScheduleTank', {
+    scheduleId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        field: 'id_расписания'
+    },
+    tankId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        field: 'id_бака'
+    },
+    volume: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        field: 'объем'
+    }
+}, {
+    tableName: 'расписание_баки',
+    timestamps: false
+})
+
+// связь расписания с клапанами (с объёмом)
+const ScheduleValve = sequelize.define('ScheduleValve', {
+    scheduleId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        field: 'id_расписания'
+    },
+    valveId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        field: 'id_клапана'
+    },
+    volume: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        field: 'объем'
+    }
+}, {
+    tableName: 'расписание_клапаны',
+    timestamps: false
+})
 
 
 // связи
-
-// Назначение баков -> Баки
-TankPurpose.hasMany(Tank, { foreignKey: 'purposeId', as: 'tanks' })
-Tank.belongsTo(TankPurpose, { foreignKey: 'purposeId', as: 'purpose' })
 
 // Клапаны <-> Блоки теплиц (M2M через теплицы_клапаны)
 Valve.belongsToMany(GreenhouseBlock, {
@@ -396,9 +473,36 @@ WateringHistory.belongsTo(SolutionHistory, { foreignKey: 'solutionId', as: 'solu
 WateringHistory.hasMany(DrainHistory, { foreignKey: 'wateringId', as: 'drains' })
 DrainHistory.belongsTo(WateringHistory, { foreignKey: 'wateringId', as: 'drains' })
 
+// Расписание -> баки (M:N через расписание_баки)
+WateringSchedule.belongsToMany(Tank, {
+    through: ScheduleTank,
+    foreignKey: 'scheduleId',
+    otherKey: 'tankId',
+    as: 'tanks'
+})
+Tank.belongsToMany(WateringSchedule, {
+    through: ScheduleTank,
+    foreignKey: 'tankId',
+    otherKey: 'scheduleId',
+    as: 'schedules'
+})
 
+// Расписание -> клапаны (M:N через расписание_клапаны)
+WateringSchedule.belongsToMany(Valve, {
+    through: ScheduleValve,
+    foreignKey: 'scheduleId',
+    otherKey: 'valveId',
+    as: 'valves'
+})
+Valve.belongsToMany(WateringSchedule, {
+    through: ScheduleValve,
+    foreignKey: 'valveId',
+    otherKey: 'scheduleId',
+    as: 'schedules'
+})
+TankPurpose.hasMany(Tank, { foreignKey: 'purposeId', as: 'tanks' })
+Tank.belongsTo(TankPurpose, { foreignKey: 'purposeId', as: 'purpose' })
 
-// экспорт моделей
 module.exports = {
     sequelize,
     User,
@@ -412,5 +516,8 @@ module.exports = {
     SolutionHistory,
     SolutionComposition,
     WateringHistory,
-    DrainHistory
+    DrainHistory,
+    WateringSchedule,
+    ScheduleTank,
+    ScheduleValve,
 }
