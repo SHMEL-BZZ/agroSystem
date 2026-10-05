@@ -23,4 +23,6 @@ export const tanksApi = {
 
     // История растворов для бака
     getSolutions: (id) => http.get(`${ENDPOINTS.tanks}/${id}/solutions`),
+
+    getAllWithContents: () => http.get('/tank/with-contents'),
 };
