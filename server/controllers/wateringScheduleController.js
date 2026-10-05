@@ -1,5 +1,11 @@
-const { WateringSchedule } = require('../models/models')
-
+const {
+    WateringSchedule,
+    ScheduleTank,
+    ScheduleValve,
+    Tank,
+    Valve,
+    sequelize,
+} = require('../models/models')
 const ApiError = require('../error/ApiError')
 
 class WateringScheduleController {
@@ -11,64 +17,116 @@ class WateringScheduleController {
 
             const rows = await WateringSchedule.findAll({
                 where: { date },
-                order: [['periodNumber', 'ASC']]
+                order: [['periodNumber', 'ASC']],
+                include: [
+                    {
+                        model: Tank,
+                        as: 'tanks',
+                        through: { attributes: ['volume'] },
+                    },
+                    {
+                        model: Valve,
+                        as: 'valves',
+                        through: { attributes: ['volume'] },
+                    },
+                ],
             })
-            return res.json(rows)
+
+            // Преобразуем в удобный формат для клиента
+            const result = rows.map((r) => ({
+                id: r.id,
+                date: r.date,
+                periodNumber: r.periodNumber,
+                startTime: r.startTime,
+                durationMin: r.durationMin,
+                periodVolume: r.periodVolume,
+                tanks: (r.tanks || []).map((t) => ({
+                    tankId: t.id,
+                    volume: t.ScheduleTank?.volume,
+                })),
+                valves: (r.valves || []).map((v) => ({
+                    valveId: v.id,
+                    volume: v.ScheduleValve?.volume,
+                })),
+            }))
+
+            return res.json(result)
         } catch (e) {
+            console.error('SCHEDULE GET ERROR:', e)
             return next(ApiError.internal(e.message))
         }
     }
 
     // POST /api/watering-schedule
-    // body: { date, periods: [{ name, start, duration, volume, tanks, valves }] }
+    // body: { date, periods: [{ start, duration, volume, tanks, valves }] }
     async save(req, res, next) {
+        const transaction = await sequelize.transaction()
         try {
             const { date, periods } = req.body
             if (!date || !Array.isArray(periods)) {
+                await transaction.rollback()
                 return next(ApiError.badRequest('date и periods обязательны'))
             }
 
-            // Полностью перезаписываем расписание на эту дату
-            await WateringSchedule.destroy({ where: { date } })
+            // Удаляем старое расписание (каскадно удалятся и связанные строки)
+            await WateringSchedule.destroy({
+                where: { date },
+                transaction,
+            })
 
             const created = []
+
             for (let i = 0; i < periods.length; i++) {
                 const p = periods[i]
 
-                // Распределение по бакам: [{ tankId, volume }]
-                const tankDistribution = (p.tanks || [])
-                    .filter(t => t.tankId && parseFloat(t.volume) > 0)
-                    .map(t => ({
-                        tankId: Number(t.tankId),
-                        volume: parseFloat(t.volume)
-                    }))
+                const schedule = await WateringSchedule.create(
+                    {
+                        date,
+                        periodNumber: i + 1,
+                        startTime: p.start,
+                        durationMin: parseInt(p.duration, 10) || 0,
+                        periodVolume: parseFloat(p.volume) || 0,
+                    },
+                    { transaction }
+                )
 
-                // Распределение по клапанам: [{ valveId, volume }]
-                const valveDistribution = Object.entries(p.valves || {})
-                    .filter(([_, v]) => v.enabled && parseFloat(v.volume) > 0)
-                    .map(([valveId, v]) => ({
-                        valveId: Number(valveId),
-                        volume: parseFloat(v.volume)
-                    }))
+                // Привязка баков
+                for (const t of p.tanks || []) {
+                    if (!t.tankId || !(parseFloat(t.volume) > 0)) continue
+                    await ScheduleTank.create(
+                        {
+                            scheduleId: schedule.id,
+                            tankId: Number(t.tankId),
+                            volume: parseFloat(t.volume),
+                        },
+                        { transaction }
+                    )
+                }
 
-                const row = await WateringSchedule.create({
-                    date,
-                    periodNumber: i + 1,
-                    startTime: p.start,
-                    durationMin: parseInt(p.duration, 10) || 0,
-                    periodVolume: parseFloat(p.volume) || 0,
-                    tankDistribution,
-                    valveDistribution
-                })
+                // Привязка клапанов
+                for (const [valveId, v] of Object.entries(p.valves || {})) {
+                    if (!v.enabled || !(parseFloat(v.volume) > 0)) continue
+                    await ScheduleValve.create(
+                        {
+                            scheduleId: schedule.id,
+                            valveId: Number(valveId),
+                            volume: parseFloat(v.volume),
+                        },
+                        { transaction }
+                    )
+                }
 
-                created.push(row)
+                created.push(schedule)
             }
 
+            await transaction.commit()
             return res.json({
                 message: `Сохранено ${created.length} период(ов)`,
-                rows: created
+                count: created.length,
             })
         } catch (e) {
+            await transaction.rollback()
+            console.error('SCHEDULE SAVE ERROR:', e)
             return next(ApiError.internal(e.message))
         }
     }
