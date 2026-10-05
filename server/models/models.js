@@ -346,6 +346,54 @@ const DrainHistory = sequelize.define('DrainHistory', {
     timestamps: false
 })
 
+// расписание полива
+const WateringSchedule = sequelize.define('WateringSchedule', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        field: 'id_расписания'
+    },
+    date: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        field: 'дата'
+    },
+    periodNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'номер_периода'
+    },
+    startTime: {
+        type: DataTypes.TIME,
+        allowNull: false,
+        field: 'время_начала'
+    },
+    durationMin: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'длительность_мин'
+    },
+    periodVolume: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        field: 'объем_периода'
+    },
+    tankDistribution: {
+        type: DataTypes.JSONB,
+        defaultValue: [],
+        field: 'распределение_баков'
+    },
+    valveDistribution: {
+        type: DataTypes.JSONB,
+        defaultValue: [],
+        field: 'распределение_клапанов'
+    }
+}, {
+    tableName: 'расписание_полива',
+    timestamps: false
+})
+
 
 
 // связи
