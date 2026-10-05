@@ -444,9 +444,6 @@ WateringHistory.belongsTo(SolutionHistory, { foreignKey: 'solutionId', as: 'solu
 WateringHistory.hasMany(DrainHistory, { foreignKey: 'wateringId', as: 'drains' })
 DrainHistory.belongsTo(WateringHistory, { foreignKey: 'wateringId', as: 'drains' })
 
-
-
-// экспорт моделей
 module.exports = {
     sequelize,
     User,
@@ -460,5 +457,6 @@ module.exports = {
     SolutionHistory,
     SolutionComposition,
     WateringHistory,
-    DrainHistory
+    DrainHistory,
+    WateringSchedule,
 }
