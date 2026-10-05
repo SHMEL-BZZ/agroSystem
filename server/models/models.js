@@ -1,5 +1,5 @@
 const sequelize = require('../db')
-const {DataTypes} = require('sequelize')
+const { DataTypes } = require('sequelize')
 
 // модели
 // пользователи
@@ -66,6 +66,10 @@ const Valve = sequelize.define('Valve', {
         validate: {
             isIn: [['работает', 'отключен', 'аварийное']]
         }
+    },
+    waterSupply: {
+        type: DataTypes.DECIMAL(10, 2),
+        field: 'подача_воды'
     }
 }, {
     tableName: 'клапаны',
@@ -94,7 +98,7 @@ const GreenhouseBlock = sequelize.define('GreenhouseBlock', {
     timestamps: false
 })
 
-// связь теплиц и клкапанов 
+// связь теплиц и клапанов 
 const GreenhouseValve = sequelize.define('GreenhouseValve', {
     valveId: {
         type: DataTypes.INTEGER,
@@ -111,7 +115,7 @@ const GreenhouseValve = sequelize.define('GreenhouseValve', {
     timestamps: false
 })
 
-// назначение баков 
+// назначение баков
 const TankPurpose = sequelize.define('TankPurpose', {
     id: {
         type: DataTypes.INTEGER,
@@ -212,10 +216,10 @@ const Additive = sequelize.define('Additive', {
     },
     unit: {
         type: DataTypes.STRING(10),
-        defaultValue: 'кг',
+        defaultValue: 'г',
         field: 'ед_измерения',
         validate: {
-            isIn: [['кг', 'л']]
+            isIn: [['г', 'мл', 'л']]
         }
     }
 }, {
@@ -274,7 +278,7 @@ const SolutionComposition = sequelize.define('SolutionComposition', {
         type: DataTypes.STRING(10),
         field: 'ед_измерения',
         validate: {
-            isIn: [['кг', 'л']]
+            isIn: [['г', 'мл', 'л']]
         }
     }
 }, {
@@ -345,6 +349,7 @@ const DrainHistory = sequelize.define('DrainHistory', {
 
 
 // связи
+
 // Назначение баков -> Баки
 TankPurpose.hasMany(Tank, { foreignKey: 'purposeId', as: 'tanks' })
 Tank.belongsTo(TankPurpose, { foreignKey: 'purposeId', as: 'purpose' })
@@ -389,7 +394,7 @@ WateringHistory.belongsTo(SolutionHistory, { foreignKey: 'solutionId', as: 'solu
 
 // История поливов -> История дренажа
 WateringHistory.hasMany(DrainHistory, { foreignKey: 'wateringId', as: 'drains' })
-DrainHistory.belongsTo(WateringHistory, { foreignKey: 'wateringId', as: 'watering' })
+DrainHistory.belongsTo(WateringHistory, { foreignKey: 'wateringId', as: 'drains' })
 
 
 
