@@ -2,19 +2,30 @@
 import './DataCollectionPage.css';
 import { generatorsApi } from '../api/generatorsApi';
 
+// Локальная дата в формате YYYY-MM-DD (не UTC!)
+const getLocalToday = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
 const DataCollectionPage = () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalToday();
 
     const [devicesSeason, setDevicesSeason] = useState('');
     const [devicesLastGen, setDevicesLastGen] = useState('');
     const [devicesGenerated, setDevicesGenerated] = useState(false);
     const [devicesStatus, setDevicesStatus] = useState('idle');
     const [devicesData, setDevicesData] = useState([]);
+    const [devicesMessage, setDevicesMessage] = useState('');
 
     const [drainageLastGen, setDrainageLastGen] = useState('');
     const [drainageGenerated, setDrainageGenerated] = useState(false);
     const [drainageStatus, setDrainageStatus] = useState('idle');
     const [drainageData, setDrainageData] = useState([]);
+    const [drainageMessage, setDrainageMessage] = useState('');
 
     const [timeToMidnight, setTimeToMidnight] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -59,8 +70,6 @@ const DataCollectionPage = () => {
     // ─── Загрузка данных из БД ───────────────────────────────
     const loadDevicesData = async () => {
         try {
-            // Берём данные из генератора, который соответствует выбранному сезону
-            // (если сезон не выбран, по умолчанию — summer)
             const name = devicesSeason === 'offseason' ? 'devices-offseason' : 'devices-summer';
             const rows = await generatorsApi.data(name, today);
             setDevicesData(Array.isArray(rows) ? rows : []);
@@ -95,7 +104,7 @@ const DataCollectionPage = () => {
                     if (s.status === 'done') {
                         clearInterval(interval);
                         setStatus('idle');
-                        onSuccess();
+                        onSuccess(s);        // ← передаём весь объект статуса (там stdout)
                     } else if (s.status === 'failed') {
                         clearInterval(interval);
                         setStatus('idle');
@@ -103,6 +112,7 @@ const DataCollectionPage = () => {
                             `Генератор "${name}" упал: ${s.stderr || 'см. консоль сервера'}`
                         );
                     }
+                    // status === 'running' → продолжаем опрос
                 } catch (e) {
                     clearInterval(interval);
                     setStatus('idle');
@@ -126,10 +136,11 @@ const DataCollectionPage = () => {
 
         runGenerator(
             name,
-            async () => {
+            async (status) => {
                 localStorage.setItem('dataCollection:devices:lastGen', today);
                 setDevicesLastGen(today);
                 setDevicesGenerated(true);
+                setDevicesMessage(status.stdout || '');
                 await loadDevicesData();
             },
             setDevicesStatus
@@ -145,10 +156,11 @@ const DataCollectionPage = () => {
 
         runGenerator(
             'drainage',
-            async () => {
+            async (status) => {
                 localStorage.setItem('dataCollection:drainage:lastGen', today);
                 setDrainageLastGen(today);
                 setDrainageGenerated(true);
+                setDrainageMessage(status.stdout || '');
                 await loadDrainageData();
             },
             setDrainageStatus
@@ -234,19 +246,7 @@ const DataCollectionPage = () => {
                 )}
 
                 <div className="data-output data-output--list">
-                    {!devicesGenerated && devicesData.length === 0 && (
-                        <span className="data-output__empty">
-                            Пока ничего не сгенерировано. Выберите сезон и нажмите
-                            «Генерация».
-                        </span>
-                    )}
-
-                    {devicesGenerated && devicesData.length === 0 && (
-                        <span className="data-output__empty">
-                            Данные за сегодня есть, но записей в БД не найдено.
-                        </span>
-                    )}
-
+                    {/* Данные есть — рендерим таблицу */}
                     {devicesData.length > 0 && (
                         <table className="data-table">
                             <thead>
@@ -274,6 +274,25 @@ const DataCollectionPage = () => {
                                 ))}
                             </tbody>
                         </table>
+                    )}
+
+                    {/* Данных нет + генерация не запускалась */}
+                    {!devicesGenerated && devicesData.length === 0 && (
+                        <span className="data-output__empty">
+                            Пока ничего не сгенерировано. Выберите сезон и нажмите
+                            «Генерация».
+                        </span>
+                    )}
+
+                    {/* Генерация запускалась, но данных нет — показываем вывод Python */}
+                    {devicesGenerated && devicesData.length === 0 && (
+                        <span
+                            className="data-output__empty"
+                            style={{ whiteSpace: 'pre-line' }}
+                        >
+                            {devicesMessage ||
+                                'Новых записей не создано. Возможно, данные за сегодня уже есть.'}
+                        </span>
                     )}
                 </div>
             </section>
@@ -314,18 +333,7 @@ const DataCollectionPage = () => {
                 )}
 
                 <div className="data-output data-output--list">
-                    {!drainageGenerated && drainageData.length === 0 && (
-                        <span className="data-output__empty">
-                            Пока ничего не сгенерировано. Нажмите «Генерация».
-                        </span>
-                    )}
-
-                    {drainageGenerated && drainageData.length === 0 && (
-                        <span className="data-output__empty">
-                            Данные за сегодня есть, но записей в БД не найдено.
-                        </span>
-                    )}
-
+                    {/* Данные есть — таблица */}
                     {drainageData.length > 0 && (
                         <table className="data-table">
                             <thead>
@@ -345,6 +353,24 @@ const DataCollectionPage = () => {
                                 ))}
                             </tbody>
                         </table>
+                    )}
+
+                    {/* Не запускалась генерация */}
+                    {!drainageGenerated && drainageData.length === 0 && (
+                        <span className="data-output__empty">
+                            Пока ничего не сгенерировано. Нажмите «Генерация».
+                        </span>
+                    )}
+
+                    {/* Запускалась, но нет данных — показываем вывод Python */}
+                    {drainageGenerated && drainageData.length === 0 && (
+                        <span
+                            className="data-output__empty"
+                            style={{ whiteSpace: 'pre-line' }}
+                        >
+                            {drainageMessage ||
+                                'Новых записей не создано. Возможно, все поливы уже покрыты дренажом.'}
+                        </span>
                     )}
                 </div>
             </section>
