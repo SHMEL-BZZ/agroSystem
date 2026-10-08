@@ -6,13 +6,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Push to GitLab
         env:
-          GITLAB_TOKEN: ${{ glpat-NRtmP-SU-BjYmVMg-yGEZ2M6MQpvOjEKdTpwcDR1bQ8.01.170hb5n5w }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          git remote add gitlab https://oauth2:$GITLAB_TOKEN@gitlab.com/your-username/your-repo.git
-          git push --mirror gitlab
+          git remote add gitlab https://oauth2:$GITLAB_TOKEN@gitlab.com/ekaterinaandreeva370/agrosystemmirror.git
+          git push --prune --force gitlab \
+            +refs/remotes/origin/*:refs/heads/* \
+            +refs/tags/*:refs/tags/*
