@@ -16,5 +16,5 @@ jobs:
         run: |
           git remote add gitlab https://oauth2:$GITLAB_TOKEN@gitlab.com/ekaterinaandreeva370/agrosystemmirror.git
           git push --prune gitlab \
-            +refs/heads/*:refs/heads/* \
+            refs/remotes/origin/* \
             +refs/tags/*:refs/tags/*
