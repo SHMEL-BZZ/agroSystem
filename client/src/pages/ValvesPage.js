@@ -68,16 +68,6 @@ const ValvesPage = () => {
         (g) => !g.valves || g.valves.length === 0
     );
 
-    const isNameTaken = (name, ignoreId = null) => {
-        const normalized = name.trim().toLowerCase();
-        if (!normalized) return false;
-        return greenhouses.some(
-            (g) =>
-                g.id !== ignoreId &&
-                g.name.trim().toLowerCase() === normalized
-        );
-    };
-
     // Проверка: есть ли уже теплица с таким именем (без учёта регистра и пробелов)
     const isNameTaken = (name, ignoreId = null) => {
         const normalized = name.trim().toLowerCase();
