@@ -41,7 +41,6 @@ const start = async () => {
         await sequelize.sync() // сверяет бд и данные с приложения
         app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
         const cron = require('node-cron');
-        const { sequelize } = require('./models/models');
 
         // Каждую минуту проверяем расписание
         cron.schedule('* * * * *', async () => {
