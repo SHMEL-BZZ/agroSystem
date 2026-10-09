@@ -8,6 +8,48 @@ import {
 } from '../http/valveAPI';
 import { fetchGreenhouses } from '../http/greenhouseAPI';
 
+const LIMITS = {
+    valveManufacturer: { min: 2, max: 50, label: 'Производитель' },
+    valveModel: { min: 1, max: 50, label: 'Модель' },
+    valveDiameter: { min: 0.01, max: 300, label: 'Диаметр' },
+    greenhouseName: { min: 2, max: 100, label: 'Название теплицы' },
+    greenhouseDescription: { min: 0, max: 500, label: 'Описание' },
+};
+
+const RE_ALLOWED = /^[а-яёa-z0-9\s.,\-_/'"()]+$/i;
+
+function validateString(value, { min, max, label }, { required = false, pattern = null } = {}) {
+    const v = (value ?? '').toString().trim();
+    if (required && !v) return `${label} — обязательное поле`;
+    if (!v) return '';
+    if (min !== undefined && v.length < min) return `${label}: минимум ${min} символов`;
+    if (max !== undefined && v.length > max) return `${label}: максимум ${max} символов`;
+    if (pattern && !pattern.test(v)) return `${label}: недопустимые символы`;
+    return '';
+}
+
+function validateNumber(value, { min, max, label }, { required = false } = {}) {
+    const v = (value ?? '').toString().trim();
+    if (required && !v) return `${label} — обязательное поле`;
+    if (!v) return '';
+
+    if (!/^-?\d+([.,]\d+)?$/.test(v)) {
+        return `${label}: только число (например, 25.40)`;
+    }
+
+    const normalized = v.replace(',', '.');
+    const n = Number(normalized);
+    if (Number.isNaN(n)) return `${label}: введите число`;
+
+    if (min !== undefined && n < min) return `${label}: минимум ${min}`;
+    if (max !== undefined && n > max) return `${label}: максимум ${max}`;
+
+    const decimals = (normalized.split('.')[1] || '').length;
+    if (decimals > 2) return `${label}: не более 2 знаков после запятой`;
+
+    return '';
+}
+
 const CONSTRUCTION_TYPES = [
     { value: 'электромагнитный', label: 'Электромагнитный' },
     { value: 'шаровый', label: 'Шаровый' },
@@ -15,33 +57,31 @@ const CONSTRUCTION_TYPES = [
     { value: 'игольчатый', label: 'Игольчатый' },
 ];
 
-const STATES = [
+const VALVE_STATES = [
     { value: 'работает', label: 'Работает' },
     { value: 'отключен', label: 'Отключен' },
     { value: 'аварийное', label: 'Аварийное' },
 ];
 
 const ValvesPage = () => {
-    // ─── Список клапанов / теплиц ───
     const [valves, setValves] = useState([]);
     const [greenhouses, setGreenhouses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeValveId, setActiveValveId] = useState(null);
 
-    // ─── Модалка «Добавить теплицу к клапану» ───
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addMode, setAddMode] = useState('existing');
     const [selectedFreeId, setSelectedFreeId] = useState('');
     const [newGreenhouseName, setNewGreenhouseName] = useState('');
     const [newGreenhouseDescription, setNewGreenhouseDescription] = useState('');
-    const [nameError, setNameError] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [greenhouseErrors, setGreenhouseErrors] = useState({
+        name: '',
+        description: '',
+    });
 
-    // ─── Модалка «Убрать теплицу» ───
     const [greenhouseToRemove, setGreenhouseToRemove] = useState(null);
 
-    // ─── Модалка «Новый клапан» ───
     const [isValveModalOpen, setIsValveModalOpen] = useState(false);
     const [valveForm, setValveForm] = useState({
         manufacturer: '',
@@ -50,9 +90,17 @@ const ValvesPage = () => {
         diameter: '',
         state: 'работает',
     });
-    const [valveFormError, setValveFormError] = useState('');
+    const [valveErrors, setValveErrors] = useState({
+        manufacturer: '',
+        model: '',
+        constructionType: '',
+        diameter: '',
+        state: '',
+    });
+    const [serverError, setServerError] = useState('');
 
-    // ─── Загрузка ───
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -65,10 +113,17 @@ const ValvesPage = () => {
                 fetchValves(),
                 fetchGreenhouses(),
             ]);
+
             setValves(valvesData);
             setGreenhouses(greenhousesData);
-            if (valvesData.length > 0 && !valvesData.some((v) => v.id === activeValveId)) {
-                setActiveValveId(valvesData[0].id);
+
+            if (valvesData.length > 0) {
+                setActiveValveId((prev) => {
+                    const stillExists = valvesData.some((v) => v.id === prev);
+                    return stillExists ? prev : valvesData[0].id;
+                });
+            } else {
+                setActiveValveId(null);
             }
         } catch (err) {
             console.error('Ошибка загрузки данных:', err);
@@ -78,78 +133,136 @@ const ValvesPage = () => {
         }
     };
 
-    // ─── Фильтры ───
     const activeValve = valves.find((v) => v.id === activeValveId);
 
     const valveGreenhouses = greenhouses.filter(
         (g) => g.valves && g.valves.some((v) => v.id === activeValveId)
     );
+
     const freeGreenhouses = greenhouses.filter(
         (g) => !g.valves || g.valves.length === 0
     );
 
-    const isNameTaken = (name, ignoreId = null) => {
-        const normalized = name.trim().toLowerCase();
-        if (!normalized) return false;
-        return greenhouses.some(
-            (g) =>
-                g.id !== ignoreId &&
-                g.name.trim().toLowerCase() === normalized
-        );
+    const validateGreenhouseForm = () => {
+        const errors = { name: '', description: '' };
+
+        if (addMode === 'new') {
+            errors.name = validateString(
+                newGreenhouseName,
+                LIMITS.greenhouseName,
+                { required: true, pattern: RE_ALLOWED }
+            );
+
+            if (!errors.name) {
+                const nameLower = newGreenhouseName.trim().toLowerCase();
+                if (
+                    greenhouses.some(
+                        (g) => g.name.trim().toLowerCase() === nameLower
+                    )
+                ) {
+                    errors.name = 'Теплица с таким названием уже существует';
+                }
+            }
+
+            errors.description = validateString(
+                newGreenhouseDescription,
+                LIMITS.greenhouseDescription,
+                { required: false }
+            );
+        }
+
+        setGreenhouseErrors(errors);
+        return Object.values(errors).every((e) => !e);
     };
 
-    // ─── Модалка «Добавить теплицу» ───
+    const validateValveForm = () => {
+        const errors = {
+            manufacturer: validateString(
+                valveForm.manufacturer,
+                LIMITS.valveManufacturer,
+                { required: true, pattern: RE_ALLOWED }
+            ),
+            model: validateString(
+                valveForm.model,
+                LIMITS.valveModel,
+                { required: true, pattern: RE_ALLOWED }
+            ),
+            constructionType: CONSTRUCTION_TYPES.some(
+                (t) => t.value === valveForm.constructionType
+            )
+                ? ''
+                : 'Выберите тип конструкции',
+            diameter:
+                valveForm.diameter === ''
+                    ? ''
+                    : validateNumber(valveForm.diameter, LIMITS.valveDiameter, {
+                        required: false,
+                    }),
+            state: VALVE_STATES.some((s) => s.value === valveForm.state)
+                ? ''
+                : 'Выберите состояние',
+        };
+
+        if (!errors.model) {
+            const modelLower = valveForm.model.trim().toLowerCase();
+            if (valves.some((v) => v.model?.toLowerCase() === modelLower)) {
+                errors.model = 'Клапан с такой моделью уже существует';
+            }
+        }
+
+        setValveErrors(errors);
+        return Object.values(errors).every((e) => !e);
+    };
+
     const openAddModal = () => {
         setAddMode(freeGreenhouses.length > 0 ? 'existing' : 'new');
         setSelectedFreeId(freeGreenhouses[0]?.id?.toString() || '');
         setNewGreenhouseName('');
         setNewGreenhouseDescription('');
-        setNameError('');
+        setGreenhouseErrors({ name: '', description: '' });
         setIsAddModalOpen(true);
     };
+
     const cancelAddModal = () => {
         setIsAddModalOpen(false);
-        setNameError('');
+        setGreenhouseErrors({ name: '', description: '' });
     };
+
     const confirmAddModal = async () => {
+        if (!validateGreenhouseForm()) return;
+
         setIsSubmitting(true);
-        setNameError('');
         try {
             if (addMode === 'existing') {
                 const id = parseInt(selectedFreeId, 10);
                 if (!id) {
                     alert('Выберите теплицу из списка.');
+                    setIsSubmitting(false);
                     return;
                 }
                 await linkGreenhouseToValve(activeValveId, { blockId: id });
             } else {
-                const name = newGreenhouseName.trim();
-                if (!name) {
-                    setNameError('Введите название теплицы.');
-                    return;
-                }
-                if (isNameTaken(name)) {
-                    setNameError('Теплица с таким названием уже существует.');
-                    return;
-                }
                 await linkGreenhouseToValve(activeValveId, {
-                    name,
-                    description: newGreenhouseDescription,
+                    name: newGreenhouseName.trim(),
+                    description: newGreenhouseDescription.trim() || undefined,
                 });
             }
+
             await loadData();
             setIsAddModalOpen(false);
         } catch (err) {
             console.error('Ошибка при добавлении:', err);
-            alert(err.response?.data?.message || 'Ошибка при привязке теплицы');
+            alert(
+                err.response?.data?.message || 'Ошибка при привязке теплицы'
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ─── Модалка «Убрать теплицу» ───
     const askRemoveGreenhouse = (id) => setGreenhouseToRemove(id);
     const cancelRemoveGreenhouse = () => setGreenhouseToRemove(null);
+
     const confirmRemoveGreenhouse = async () => {
         setIsSubmitting(true);
         try {
@@ -164,7 +277,6 @@ const ValvesPage = () => {
         }
     };
 
-    // ─── Модалка «Новый клапан» ───
     const openValveModal = () => {
         setValveForm({
             manufacturer: '',
@@ -173,41 +285,35 @@ const ValvesPage = () => {
             diameter: '',
             state: 'работает',
         });
-        setValveFormError('');
+        setValveErrors({
+            manufacturer: '',
+            model: '',
+            constructionType: '',
+            diameter: '',
+            state: '',
+        });
+        setServerError('');
         setIsValveModalOpen(true);
     };
+
     const cancelValveModal = () => {
         setIsValveModalOpen(false);
-        setValveFormError('');
+        setServerError('');
     };
+
     const handleValveChange = (field, value) => {
         setValveForm((prev) => ({ ...prev, [field]: value }));
-        if (valveFormError) setValveFormError('');
+        if (valveErrors[field]) {
+            setValveErrors((prev) => ({ ...prev, [field]: '' }));
+        }
+        if (serverError) setServerError('');
     };
+
     const confirmValveModal = async () => {
+        if (!validateValveForm()) return;
+
         setIsSubmitting(true);
-        setValveFormError('');
-
-        // Валидация на клиенте
-        if (!valveForm.manufacturer.trim()) {
-            setValveFormError('Укажите производителя.');
-            setIsSubmitting(false);
-            return;
-        }
-        if (!valveForm.model.trim()) {
-            setValveFormError('Укажите модель.');
-            setIsSubmitting(false);
-            return;
-        }
-
-        // Проверка на дубликат модели (case-insensitive)
-        const modelLower = valveForm.model.trim().toLowerCase();
-        if (valves.some((v) => v.model?.toLowerCase() === modelLower)) {
-            setValveFormError('Клапан с такой моделью уже существует.');
-            setIsSubmitting(false);
-            return;
-        }
-
+        setServerError('');
         try {
             const payload = {
                 manufacturer: valveForm.manufacturer.trim(),
@@ -215,21 +321,17 @@ const ValvesPage = () => {
                 constructionType: valveForm.constructionType,
                 state: valveForm.state,
             };
-            if (valveForm.diameter !== '' && valveForm.diameter !== null) {
+            if (valveForm.diameter !== '') {
                 payload.diameter = Number(valveForm.diameter);
             }
 
             const created = await createValve(payload);
-
             await loadData();
-            // Сразу делаем новый клапан активным
-            if (created?.id) {
-                setActiveValveId(created.id);
-            }
+            if (created?.id) setActiveValveId(created.id);
             setIsValveModalOpen(false);
         } catch (err) {
             console.error('Ошибка при создании клапана:', err);
-            setValveFormError(
+            setServerError(
                 err.response?.data?.message ||
                 err.message ||
                 'Не удалось создать клапан'
@@ -239,7 +341,6 @@ const ValvesPage = () => {
         }
     };
 
-    // ─── Рендер ───
     if (loading) return <div className="valves-loading">Загрузка данных...</div>;
     if (error) return <div className="valves-error">{error}</div>;
 
@@ -265,7 +366,6 @@ const ValvesPage = () => {
                     ))
                 )}
 
-                {/* Кнопка создания нового клапана */}
                 <button
                     type="button"
                     className="valves-sidebar__add"
@@ -320,10 +420,12 @@ const ValvesPage = () => {
                 )}
             </main>
 
-            {/* ─── Модалка «Добавить теплицу» (существующая) ─── */}
             {isAddModalOpen && (
                 <div className="valves-overlay" onClick={cancelAddModal}>
-                    <div className="valves-modal" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="valves-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             type="button"
                             className="valves-modal__close"
@@ -341,10 +443,17 @@ const ValvesPage = () => {
                                 type="button"
                                 className={
                                     'valves-modal__tab' +
-                                    (addMode === 'existing' ? ' valves-modal__tab--active' : '')
+                                    (addMode === 'existing'
+                                        ? ' valves-modal__tab--active'
+                                        : '')
                                 }
-                                onClick={() => { setAddMode('existing'); setNameError(''); }}
-                                disabled={freeGreenhouses.length === 0 || isSubmitting}
+                                onClick={() => {
+                                    setAddMode('existing');
+                                    setGreenhouseErrors({ name: '', description: '' });
+                                }}
+                                disabled={
+                                    freeGreenhouses.length === 0 || isSubmitting
+                                }
                             >
                                 Свободная теплица
                             </button>
@@ -352,9 +461,14 @@ const ValvesPage = () => {
                                 type="button"
                                 className={
                                     'valves-modal__tab' +
-                                    (addMode === 'new' ? ' valves-modal__tab--active' : '')
+                                    (addMode === 'new'
+                                        ? ' valves-modal__tab--active'
+                                        : '')
                                 }
-                                onClick={() => { setAddMode('new'); setNameError(''); }}
+                                onClick={() => {
+                                    setAddMode('new');
+                                    setGreenhouseErrors({ name: '', description: '' });
+                                }}
                                 disabled={isSubmitting}
                             >
                                 Новая теплица
@@ -369,15 +483,21 @@ const ValvesPage = () => {
                                     </p>
                                 ) : (
                                     <>
-                                        <label className="valves-modal__label">Выберите теплицу:</label>
+                                        <label className="valves-modal__label">
+                                            Выберите теплицу:
+                                        </label>
                                         <select
                                             className="valves-modal__select"
                                             value={selectedFreeId}
-                                            onChange={(e) => setSelectedFreeId(e.target.value)}
+                                            onChange={(e) =>
+                                                setSelectedFreeId(e.target.value)
+                                            }
                                             disabled={isSubmitting}
                                         >
                                             {freeGreenhouses.map((g) => (
-                                                <option key={g.id} value={g.id}>{g.name}</option>
+                                                <option key={g.id} value={g.id}>
+                                                    {g.name}
+                                                </option>
                                             ))}
                                         </select>
                                     </>
@@ -387,35 +507,79 @@ const ValvesPage = () => {
 
                         {addMode === 'new' && (
                             <div className="valves-modal__body">
-                                <label className="valves-modal__label">Название теплицы:</label>
+                                <label className="valves-modal__label">
+                                    Название теплицы *{' '}
+                                    <span className="valves-modal__counter">
+                                        {newGreenhouseName.length}/
+                                        {LIMITS.greenhouseName.max}
+                                    </span>
+                                </label>
                                 <input
                                     type="text"
                                     className={
                                         'valves-modal__input' +
-                                        (nameError ? ' valves-modal__input--invalid' : '')
+                                        (greenhouseErrors.name
+                                            ? ' valves-modal__input--invalid'
+                                            : '')
                                     }
                                     placeholder="Например, Теплица 3"
                                     value={newGreenhouseName}
+                                    maxLength={LIMITS.greenhouseName.max}
                                     onChange={(e) => {
                                         setNewGreenhouseName(e.target.value);
-                                        if (nameError) setNameError('');
+                                        if (greenhouseErrors.name) {
+                                            setGreenhouseErrors((p) => ({
+                                                ...p,
+                                                name: '',
+                                            }));
+                                        }
                                     }}
                                     disabled={isSubmitting}
                                     autoFocus
                                 />
-                                {nameError && <p className="valves-modal__error">{nameError}</p>}
+                                {greenhouseErrors.name && (
+                                    <p className="valves-modal__error">
+                                        {greenhouseErrors.name}
+                                    </p>
+                                )}
 
-                                <label className="valves-modal__label" style={{ marginTop: '10px' }}>
-                                    Описание (необязательно):
+                                <label
+                                    className="valves-modal__label"
+                                    style={{ marginTop: '10px' }}
+                                >
+                                    Описание (необязательно){' '}
+                                    <span className="valves-modal__counter">
+                                        {newGreenhouseDescription.length}/
+                                        {LIMITS.greenhouseDescription.max}
+                                    </span>
                                 </label>
                                 <textarea
-                                    className="valves-modal__input"
+                                    className={
+                                        'valves-modal__input' +
+                                        (greenhouseErrors.description
+                                            ? ' valves-modal__input--invalid'
+                                            : '')
+                                    }
                                     placeholder="Описание теплицы..."
                                     value={newGreenhouseDescription}
-                                    onChange={(e) => setNewGreenhouseDescription(e.target.value)}
+                                    maxLength={LIMITS.greenhouseDescription.max}
+                                    onChange={(e) => {
+                                        setNewGreenhouseDescription(e.target.value);
+                                        if (greenhouseErrors.description) {
+                                            setGreenhouseErrors((p) => ({
+                                                ...p,
+                                                description: '',
+                                            }));
+                                        }
+                                    }}
                                     disabled={isSubmitting}
                                     rows={3}
                                 />
+                                {greenhouseErrors.description && (
+                                    <p className="valves-modal__error">
+                                        {greenhouseErrors.description}
+                                    </p>
+                                )}
                             </div>
                         )}
 
@@ -441,10 +605,15 @@ const ValvesPage = () => {
                 </div>
             )}
 
-            {/* ─── Модалка «Убрать теплицу» (существующая) ─── */}
             {greenhouseToRemove !== null && (
-                <div className="valves-overlay" onClick={cancelRemoveGreenhouse}>
-                    <div className="valves-modal" onClick={(e) => e.stopPropagation()}>
+                <div
+                    className="valves-overlay"
+                    onClick={cancelRemoveGreenhouse}
+                >
+                    <div
+                        className="valves-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             type="button"
                             className="valves-modal__close"
@@ -455,10 +624,18 @@ const ValvesPage = () => {
                             ×
                         </button>
                         <div className="valves-modal__icon">⚠</div>
-                        <h3 className="valves-modal__title">Убрать теплицу из клапана?</h3>
+                        <h3 className="valves-modal__title">
+                            Убрать теплицу из клапана?
+                        </h3>
                         <p className="valves-modal__text">
-                            Теплица «{greenhouses.find((g) => g.id === greenhouseToRemove)?.name}»
-                            будет отвязана от клапана.
+                            Теплица «
+                            {
+                                greenhouses.find(
+                                    (g) => g.id === greenhouseToRemove
+                                )?.name
+                            }
+                            » будет отвязана от клапана. Её можно будет привязать
+                            к другому клапану позже.
                         </p>
                         <div className="valves-modal__actions">
                             <button
@@ -482,10 +659,12 @@ const ValvesPage = () => {
                 </div>
             )}
 
-            {/* ─── НОВАЯ модалка «Новый клапан» ─── */}
             {isValveModalOpen && (
                 <div className="valves-overlay" onClick={cancelValveModal}>
-                    <div className="valves-modal" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="valves-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             type="button"
                             className="valves-modal__close"
@@ -499,68 +678,149 @@ const ValvesPage = () => {
                         <h3 className="valves-modal__title">Новый клапан</h3>
 
                         <div className="valves-modal__body">
-                            <label className="valves-modal__label">Производитель *</label>
-                            <input
-                                type="text"
-                                className="valves-modal__input"
-                                placeholder="Например, Hunter"
-                                value={valveForm.manufacturer}
-                                onChange={(e) => handleValveChange('manufacturer', e.target.value)}
-                                disabled={isSubmitting}
-                                autoFocus
-                            />
-
-                            <label className="valves-modal__label">Модель *</label>
+                            <label className="valves-modal__label">
+                                Производитель *{' '}
+                                <span className="valves-modal__counter">
+                                    {valveForm.manufacturer.length}/
+                                    {LIMITS.valveManufacturer.max}
+                                </span>
+                            </label>
                             <input
                                 type="text"
                                 className={
                                     'valves-modal__input' +
-                                    (valveFormError ? ' valves-modal__input--invalid' : '')
+                                    (valveErrors.manufacturer
+                                        ? ' valves-modal__input--invalid'
+                                        : '')
+                                }
+                                placeholder="Например, Hunter"
+                                value={valveForm.manufacturer}
+                                maxLength={LIMITS.valveManufacturer.max}
+                                onChange={(e) =>
+                                    handleValveChange(
+                                        'manufacturer',
+                                        e.target.value
+                                    )
+                                }
+                                disabled={isSubmitting}
+                                autoFocus
+                            />
+                            {valveErrors.manufacturer && (
+                                <p className="valves-modal__error">
+                                    {valveErrors.manufacturer}
+                                </p>
+                            )}
+
+                            <label className="valves-modal__label">
+                                Модель *{' '}
+                                <span className="valves-modal__counter">
+                                    {valveForm.model.length}/
+                                    {LIMITS.valveModel.max}
+                                </span>
+                            </label>
+                            <input
+                                type="text"
+                                className={
+                                    'valves-modal__input' +
+                                    (valveErrors.model
+                                        ? ' valves-modal__input--invalid'
+                                        : '')
                                 }
                                 placeholder="Например, PGV-301"
                                 value={valveForm.model}
-                                onChange={(e) => handleValveChange('model', e.target.value)}
+                                maxLength={LIMITS.valveModel.max}
+                                onChange={(e) =>
+                                    handleValveChange('model', e.target.value)
+                                }
                                 disabled={isSubmitting}
                             />
+                            {valveErrors.model && (
+                                <p className="valves-modal__error">
+                                    {valveErrors.model}
+                                </p>
+                            )}
 
-                            <label className="valves-modal__label">Тип конструкции *</label>
+                            <label className="valves-modal__label">
+                                Тип конструкции *
+                            </label>
                             <select
-                                className="valves-modal__select"
+                                className={
+                                    'valves-modal__select' +
+                                    (valveErrors.constructionType
+                                        ? ' valves-modal__input--invalid'
+                                        : '')
+                                }
                                 value={valveForm.constructionType}
-                                onChange={(e) => handleValveChange('constructionType', e.target.value)}
+                                onChange={(e) =>
+                                    handleValveChange(
+                                        'constructionType',
+                                        e.target.value
+                                    )
+                                }
                                 disabled={isSubmitting}
                             >
                                 {CONSTRUCTION_TYPES.map((t) => (
-                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                    <option key={t.value} value={t.value}>
+                                        {t.label}
+                                    </option>
                                 ))}
                             </select>
+                            {valveErrors.constructionType && (
+                                <p className="valves-modal__error">
+                                    {valveErrors.constructionType}
+                                </p>
+                            )}
 
                             <label className="valves-modal__label">Диаметр, мм</label>
                             <input
                                 type="number"
-                                step="0.01"
-                                min="0"
-                                className="valves-modal__input"
+                                className={
+                                    'valves-modal__input' +
+                                    (valveErrors.diameter ? ' valves-modal__input--invalid' : '')
+                                }
                                 placeholder="Например, 25.40"
                                 value={valveForm.diameter}
+                                min={LIMITS.valveDiameter.min}
+                                max={LIMITS.valveDiameter.max}
+                                step="0.01"
+                                onKeyDown={(e) => {
+                                    const blocked = ['e', 'E', '+', '-'];
+                                    if (blocked.includes(e.key)) e.preventDefault();
+                                }}
                                 onChange={(e) => handleValveChange('diameter', e.target.value)}
                                 disabled={isSubmitting}
                             />
+                            {valveErrors.diameter && (
+                                <p className="valves-modal__error">{valveErrors.diameter}</p>
+                            )}
 
-                            <label className="valves-modal__label">Состояние</label>
+                            <label className="valves-modal__label">
+                                Состояние
+                            </label>
                             <select
                                 className="valves-modal__select"
                                 value={valveForm.state}
-                                onChange={(e) => handleValveChange('state', e.target.value)}
+                                onChange={(e) =>
+                                    handleValveChange('state', e.target.value)
+                                }
                                 disabled={isSubmitting}
                             >
-                                {STATES.map((s) => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                {VALVE_STATES.map((s) => (
+                                    <option key={s.value} value={s.value}>
+                                        {s.label}
+                                    </option>
                                 ))}
                             </select>
+                            {valveErrors.state && (
+                                <p className="valves-modal__error">
+                                    {valveErrors.state}
+                                </p>
+                            )}
 
-                            {valveFormError && (
-                                <p className="valves-modal__error">{valveFormError}</p>
+                            {serverError && (
+                                <p className="valves-modal__error">
+                                    {serverError}
+                                </p>
                             )}
                         </div>
 
