@@ -731,6 +731,7 @@ const WateringPage = () => {
                                                 <td key={p.id}>
                                                     <input
                                                         type="time"
+                                                        data-testid={`period-start-${p.id}`}
                                                         className={
                                                             'watering-table__input' +
                                                             (duplicateStartIds.has(p.id)

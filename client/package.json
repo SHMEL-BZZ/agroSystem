@@ -55,6 +55,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router/dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js"
+    }
+  },
   "devDependencies": {
     "@testing-library/user-event": "^14.6.8",
     "nodemon": "^3.1.14"
