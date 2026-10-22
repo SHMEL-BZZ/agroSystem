@@ -1,9 +1,8 @@
-﻿// SolutionsPage.js
-import Toast from '../components/Toast';
+﻿import Toast from '../components/Toast';
 import React, { useState, useRef, useEffect } from 'react';
 import './SolutionsPage.css';
 import SolutionsInfo from '../components/SolutionsInfo';
-import { solutionAdditives, checkCompatibility } from '../data/solutionsInfo';
+import { checkCompatibility } from '../data/compatibility';
 import {
     calcDose,
     validateDose,
@@ -19,20 +18,17 @@ import {
     createSolutionHistory,
     createSolutionComposition,
 } from '../http/tankAPI';
+import { fetchAdditives } from '../http/additiveAPI';
 
-// Константы
 const WATER_ADDITIVE_ID = 10;
 const WATER_NAME = 'Вода';
 
-const MAX_ADDITIVES = 9;              // максимум добавок в одном замесе
-const MAX_ADDITIVE_AMOUNT = 2000;     // физический потолок: 2000 г / 2000 мл
-const SOFT_LIMIT_MULTIPLIER = 2;      // допустимое превышение рекомендуемой дозы
-const SOLID_GRAM_TO_LITER = 0.001;    // 1 г твёрдой ≈ 1 мл ≈ 0.001 л
-const MAX_TANK_VOLUME = 50000;        // физический предел объёма бака
+const MAX_ADDITIVES = 9;
+const MAX_ADDITIVE_AMOUNT = 2000;
+const SOFT_LIMIT_MULTIPLIER = 2;
+const SOLID_GRAM_TO_LITER = 0.001;
+const MAX_TANK_VOLUME = 50000;
 
-// Утилиты
-
-// Агрегирует историю замесов бака в текущее содержимое
 function aggregateTankState(solutions) {
     let usedLiters = 0;
     const map = new Map();
@@ -52,7 +48,7 @@ function aggregateTankState(solutions) {
                     : (comp.additive?.name || `Добавка ${comp.additiveId}`),
                 amount: 0,
                 unit: comp.unit,
-                form: comp.additive?.unit === 'л' ? 'liquid' : 'solid',
+                form: comp.additive?.unit === 'л' || comp.additive?.unit === 'мл' ? 'liquid' : 'solid',
             };
             cur.amount += Number(comp.amount) || 0;
             map.set(key, cur);
@@ -129,7 +125,6 @@ function sanitizeAdditiveVolume(value) {
 }
 
 
-// Компонент
 const SolutionsPage = () => {
     const [activeTab, setActiveTab] = useState('mix');
     const [isHintOpen, setIsHintOpen] = useState(false);
@@ -142,6 +137,9 @@ const SolutionsPage = () => {
     const [activeTankId, setActiveTankId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [additiveOptions, setAdditiveOptions] = useState([]);
+    const [additivesLoading, setAdditivesLoading] = useState(true);
 
     const activeTank = tanks.find((t) => t.id === activeTankId);
 
@@ -163,7 +161,9 @@ const SolutionsPage = () => {
     const [additivesCount, setAdditivesCount] = useState('');
     const [additives, setAdditives] = useState([]);
 
-    // Загрузка баков с сервера
+    const getAdditiveById = (id) =>
+        additiveOptions.find((a) => a.id === Number(id)) || null;
+
     const loadTanks = async () => {
         setLoading(true);
         setError(null);
@@ -205,9 +205,13 @@ const SolutionsPage = () => {
 
     useEffect(() => {
         loadTanks();
+
+        fetchAdditives()
+            .then((data) => setAdditiveOptions(data))
+            .catch((err) => console.error('Ошибка загрузки добавок:', err))
+            .finally(() => setAdditivesLoading(false));
     }, []);
 
-    // Прокрутка списка баков
     const tanksListRef = useRef(null);
     const scrollTanks = (direction) => {
         if (tanksListRef.current) {
@@ -219,7 +223,6 @@ const SolutionsPage = () => {
         }
     };
 
-    // Удаление бака
     const askDeleteTank = (id) => {
         if (tanks.length <= 2) return;
         setTankToDelete(id);
@@ -237,7 +240,6 @@ const SolutionsPage = () => {
         }
     };
 
-    // Создание бака
     const openAddTankDialog = () => {
         setNewTankVolume('2000');
         setIsAddTankOpen(true);
@@ -267,8 +269,6 @@ const SolutionsPage = () => {
         }
     };
 
-    // Смена объёма
-
     const volumeTimerRef = useRef(null);
 
     const handleTankVolumeChange = (value) => {
@@ -291,7 +291,6 @@ const SolutionsPage = () => {
         }
     };
 
-    // Добавки
     const handleAdditivesCountChange = (value) => {
         const sanitized = sanitizeAdditivesCount(value);
 
@@ -317,7 +316,6 @@ const SolutionsPage = () => {
         });
     };
 
-    // База для дозировки
     const getDoseBase = () => {
         if (activeTank) {
             const waterItem = activeTank.items.find((it) => it.kind === 'water');
@@ -330,7 +328,6 @@ const SolutionsPage = () => {
         return '';
     };
 
-    // Изменение строки добавки
     const updateAdditive = (index, field, value) => {
         setAdditives((prev) =>
             prev.map((item, i) => {
@@ -343,13 +340,13 @@ const SolutionsPage = () => {
                 }
 
                 if (field === 'additiveId') {
-                    const additive = solutionAdditives.find(
-                        (s) => s.id === value
-                    );
+                    const additive = getAdditiveById(value);
                     const base = getDoseBase();
+                    const isLiquid = additive?.form === 'жидкое';
+
                     const dose =
-                        additive && base
-                            ? calcDose(additive.dosePerLiter, base, additive.form)
+                        additive && base && additive.dosePerLiter
+                            ? calcDose(additive.dosePerLiter, base, isLiquid ? 'liquid' : 'solid')
                             : null;
 
                     if (dose) {
@@ -370,7 +367,6 @@ const SolutionsPage = () => {
         );
     };
 
-    // Вода
     const handleWaterChange = (value) => {
         let str = String(value).replace(/[^0-9.]/g, '');
         const firstDot = str.indexOf('.');
@@ -395,16 +391,15 @@ const SolutionsPage = () => {
         setAdditives((prev) =>
             prev.map((item) => {
                 if (!item.additiveId) return item;
-                const additive = solutionAdditives.find(
-                    (s) => s.id === item.additiveId
-                );
-                if (!additive) return item;
+                const additive = getAdditiveById(item.additiveId);
+                if (!additive || !additive.dosePerLiter) return item;
                 if (!item.autoFilled && item.volume) return item;
 
                 const base = getDoseBase();
                 if (!base) return item;
 
-                const dose = calcDose(additive.dosePerLiter, base, additive.form);
+                const isLiquid = additive.form === 'жидкое';
+                const dose = calcDose(additive.dosePerLiter, base, isLiquid ? 'liquid' : 'solid');
                 if (!dose) return item;
 
                 const mid = (dose.min + dose.max) / 2;
@@ -416,7 +411,6 @@ const SolutionsPage = () => {
         );
     };
 
-    // Пересчёт доз при смене активного бака
     useEffect(() => {
         const base = getDoseBase();
         if (!base) return;
@@ -425,13 +419,12 @@ const SolutionsPage = () => {
             let changed = false;
             const next = prev.map((item) => {
                 if (!item.additiveId) return item;
-                const additive = solutionAdditives.find(
-                    (s) => s.id === item.additiveId
-                );
-                if (!additive) return item;
+                const additive = getAdditiveById(item.additiveId);
+                if (!additive || !additive.dosePerLiter) return item;
                 if (!item.autoFilled && item.volume) return item;
 
-                const dose = calcDose(additive.dosePerLiter, base, additive.form);
+                const isLiquid = additive.form === 'жидкое';
+                const dose = calcDose(additive.dosePerLiter, base, isLiquid ? 'liquid' : 'solid');
                 if (!dose) return item;
 
                 const mid = (dose.min + dose.max) / 2;
@@ -446,19 +439,14 @@ const SolutionsPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTankId]);
 
-
-    // Предупреждения
-
     const alreadyInTankWarnings = additives
         .map((row) => {
             if (!row.additiveId) return null;
-            const additive = solutionAdditives.find(
-                (s) => s.id === row.additiveId
-            );
+            const additive = getAdditiveById(row.additiveId);
             if (!additive) return null;
 
             const existing = activeTank?.items.find(
-                (it) => it.kind === 'additive' && it.id === additive.id
+                (it) => it.kind === 'additive' && Number(it.id) === Number(additive.id)
             );
             if (!existing) return null;
 
@@ -476,16 +464,15 @@ const SolutionsPage = () => {
         if (!isNaN(water) && water > 0) sum += water;
 
         additives.forEach((row) => {
-            const additive = solutionAdditives.find(
-                (s) => s.id === row.additiveId
-            );
+            const additive = getAdditiveById(row.additiveId);
             if (!additive || !row.volume) return;
 
             const v = parseFloat(row.volume);
             if (isNaN(v) || v <= 0) return;
 
-            if (additive.form === 'liquid') sum += v / 1000;
-            else if (additive.form === 'solid') sum += v * SOLID_GRAM_TO_LITER;
+            const isLiquid = additive.form === 'жидкое';
+            if (isLiquid) sum += v / 1000;
+            else sum += v * SOLID_GRAM_TO_LITER;
         });
         return sum;
     })();
@@ -493,10 +480,8 @@ const SolutionsPage = () => {
     const pendingSolidGrams = (() => {
         let sum = 0;
         additives.forEach((row) => {
-            const additive = solutionAdditives.find(
-                (s) => s.id === row.additiveId
-            );
-            if (additive && additive.form === 'solid' && row.volume) {
+            const additive = getAdditiveById(row.additiveId);
+            if (additive && additive.form === 'твердое' && row.volume) {
                 const v = parseFloat(row.volume);
                 if (!isNaN(v) && v > 0) sum += v;
             }
@@ -510,16 +495,16 @@ const SolutionsPage = () => {
     const enteredWater = parseFloat(waterLiters);
     const waterOverflow = !isNaN(enteredWater) && enteredWater > freeLiters;
 
-
-    // Совместимость
-
     const tankAdditiveIds = activeTank
-        ? activeTank.items.filter((it) => it.kind === 'additive').map((it) => it.id)
+        ? activeTank.items
+            .filter((it) => it.kind === 'additive')
+            .map((it) => Number(it.id))
         : [];
 
     const selectedIds = additives
         .map((a) => a.additiveId)
-        .filter((id) => id && id !== WATER_ADDITIVE_ID);
+        .filter(Boolean)
+        .map(Number);
 
     const violationsAmongSelected = checkCompatibility(selectedIds);
 
@@ -532,14 +517,13 @@ const SolutionsPage = () => {
                 const conflicting = rule.ids.filter(
                     (id) =>
                         id !== newId &&
-                        id !== WATER_ADDITIVE_ID &&
                         tankAdditiveIds.includes(id)
                 );
                 if (conflicting.length > 0) {
                     const conflictingName = conflicting
                         .map(
                             (id) =>
-                                solutionAdditives.find((s) => s.id === id)?.name
+                                getAdditiveById(id)?.name
                         )
                         .filter(Boolean)
                         .join(', ');
@@ -559,23 +543,21 @@ const SolutionsPage = () => {
         ...violationsWithTank.map((v) => ({ ...v, scope: 'tank' })),
     ];
 
-    // ── один блок doseWarnings, без «хвоста» копипаста ──
     const doseWarnings = additives
         .map((row) => {
             if (!row.additiveId || !row.volume) return null;
-            const additive = solutionAdditives.find(
-                (s) => s.id === row.additiveId
-            );
-            if (!additive) return null;
+            const additive = getAdditiveById(row.additiveId);
+            if (!additive || !additive.dosePerLiter) return null;
 
             const base = getDoseBase();
             if (!base) return null;
 
+            const isLiquid = additive.form === 'жидкое';
             const check = validateDose(
                 additive.dosePerLiter,
                 base,
                 row.volume,
-                additive.form
+                isLiquid ? 'liquid' : 'solid'
             );
             if (check.status === 'ok' || check.status === 'unknown') return null;
 
@@ -597,9 +579,6 @@ const SolutionsPage = () => {
 
     const canMix = allViolations.length === 0 && !exceedsTank;
 
-
-    // Замешать — сохранение в БД
-
     const handleMix = async () => {
         if (!activeTank) return;
 
@@ -619,17 +598,17 @@ const SolutionsPage = () => {
 
         const comps = [];
         additives.forEach((row) => {
-            const additive = solutionAdditives.find(
-                (s) => s.id === row.additiveId
-            );
+            const additive = getAdditiveById(row.additiveId);
             if (!additive) return;
             const v = parseFloat(row.volume);
             if (isNaN(v) || v <= 0) return;
+
+            const isLiquid = additive.form === 'жидкое';
             comps.push({
                 additiveId: additive.id,
                 amount: v,
-                unit: getUnitForForm(additive.form),
-                form: additive.form,
+                unit: isLiquid ? 'л' : 'кг', // Конвертируем обратно в кг/л для сервера
+                form: isLiquid ? 'liquid' : 'solid',
             });
         });
 
@@ -684,9 +663,6 @@ const SolutionsPage = () => {
         }
     };
 
-
-    // Рендер содержимого бака
-
     const renderContents = () => {
         if (!activeTank || !activeTank.items.length) {
             return <p className="mix-info__empty">Бак пуст</p>;
@@ -705,7 +681,6 @@ const SolutionsPage = () => {
 
     const mixContent = (
         <div className="solutions-mix">
-            {/* Левая колонка */}
             <div className="solutions-mix__left">
                 <div className="tanks-selector">
                     <div className="tanks-selector__row" ref={tanksListRef}>
@@ -907,7 +882,6 @@ const SolutionsPage = () => {
                 )}
             </div>
 
-            {/* Правая колонка */}
             <div className="solutions-mix__right">
                 <div className="mix-info">
                     <div className="mix-info__header">
@@ -952,6 +926,10 @@ const SolutionsPage = () => {
                 <div className="mix-add">
                     <h3 className="mix-add__title">Добавить в раствор:</h3>
 
+                    {additivesLoading && (
+                        <div className="mix-add__dose-hint">Загрузка добавок со склада…</div>
+                    )}
+
                     <div className="mix-add__row">
                         <label>Вода</label>
                         <input
@@ -994,13 +972,9 @@ const SolutionsPage = () => {
                     {additives.length > 0 && (
                         <div className="mix-add__additives">
                             {additives.map((row, index) => {
-                                const additive = solutionAdditives.find(
-                                    (s) => s.id === row.additiveId
-                                );
-                                const unit = additive
-                                    ? getUnitForForm(additive.form)
-                                    : '';
-                                const base = getDoseBase();
+                                const additive = getAdditiveById(row.additiveId);
+                                const isLiquid = additive?.form === 'жидкое';
+                                const unit = additive ? (isLiquid ? 'мл' : 'г') : '';
 
                                 const usedElsewhere = additives
                                     .map((r, i) =>
@@ -1009,27 +983,29 @@ const SolutionsPage = () => {
                                     .filter(Boolean);
 
                                 const availableAdditives =
-                                    solutionAdditives.filter(
+                                    additiveOptions.filter(
                                         (s) =>
-                                            s.id !== WATER_ADDITIVE_ID &&
-                                            !usedElsewhere.includes(s.id)
+                                            s.name !== 'Вода' &&
+                                            !usedElsewhere.includes(String(s.id))
                                     );
 
+                                const base = getDoseBase();
+
                                 const expected =
-                                    additive && base
+                                    additive && base && additive.dosePerLiter
                                         ? calcDose(
                                             additive.dosePerLiter,
                                             base,
-                                            additive.form
+                                            isLiquid ? 'liquid' : 'solid'
                                         )
                                         : null;
                                 const check =
-                                    additive && base && row.volume
+                                    additive && base && additive.dosePerLiter && row.volume
                                         ? validateDose(
                                             additive.dosePerLiter,
                                             base,
                                             row.volume,
-                                            additive.form
+                                            isLiquid ? 'liquid' : 'solid'
                                         )
                                         : null;
                                 const isInvalid =
@@ -1058,7 +1034,7 @@ const SolutionsPage = () => {
                                             </option>
                                             {availableAdditives.map((s) => (
                                                 <option key={s.id} value={s.id}>
-                                                    {s.name} ({s.category})
+                                                    {s.name} ({s.category || 'без категории'})
                                                 </option>
                                             ))}
                                         </select>

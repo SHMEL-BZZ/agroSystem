@@ -1,7 +1,7 @@
 const { Additive } = require('../models/models')
 const ApiError = require('../error/ApiError')
 
-const VALID_UNITS = ['кг', 'л']
+const VALID_UNITS = ['кг', 'л', 'г', 'мл'];
 
 
 class AdditiveController {

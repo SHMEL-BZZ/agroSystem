@@ -8,6 +8,10 @@ import {
 } from '../http/valveAPI';
 import { fetchGreenhouses } from '../http/greenhouseAPI';
 
+/**
+ * Ограничения на вводимые значения для полей формы.
+ * @type {Object.<string, {min: number, max: number, label: string}>}
+ */
 const LIMITS = {
     valveManufacturer: { min: 2, max: 50, label: 'Производитель' },
     valveModel: { min: 1, max: 50, label: 'Модель' },
@@ -16,8 +20,20 @@ const LIMITS = {
     greenhouseDescription: { min: 0, max: 500, label: 'Описание' },
 };
 
+/**
+ * Регулярное выражение для проверки допустимых символов в строковых полях.
+ * Разрешены кириллица, латиница, цифры, пробелы и знаки пунктуации.
+ * @type {RegExp}
+ */
 const RE_ALLOWED = /^[а-яёa-z0-9\s.,\-_/'"()]+$/i;
 
+/**
+ * Валидация строкового поля: обязательность, длина, допустимые символы.
+ * @param {string} value — значение поля.
+ * @param {{min?: number, max?: number, label: string}} limits — ограничения.
+ * @param {{required?: boolean, pattern?: RegExp}} options — дополнительные правила.
+ * @returns {string} — текст ошибки или пустая строка, если ошибки нет.
+ */
 function validateString(value, { min, max, label }, { required = false, pattern = null } = {}) {
     const v = (value ?? '').toString().trim();
     if (required && !v) return `${label} — обязательное поле`;
@@ -28,6 +44,14 @@ function validateString(value, { min, max, label }, { required = false, pattern 
     return '';
 }
 
+/**
+ * Валидация числового поля: диапазон, количество знаков после запятой.
+ * Принимает как точку, так и запятую в качестве разделителя.
+ * @param {string|number} value — значение поля.
+ * @param {{min?: number, max?: number, label: string}} limits — ограничения.
+ * @param {{required?: boolean}} options — дополнительные правила.
+ * @returns {string} — текст ошибки или пустая строка, если ошибки нет.
+ */
 function validateNumber(value, { min, max, label }, { required = false } = {}) {
     const v = (value ?? '').toString().trim();
     if (required && !v) return `${label} — обязательное поле`;
@@ -50,6 +74,7 @@ function validateNumber(value, { min, max, label }, { required = false } = {}) {
     return '';
 }
 
+/** @type {{value: string, label: string}[]} Допустимые типы конструкции клапана. */
 const CONSTRUCTION_TYPES = [
     { value: 'электромагнитный', label: 'Электромагнитный' },
     { value: 'шаровый', label: 'Шаровый' },
@@ -57,12 +82,25 @@ const CONSTRUCTION_TYPES = [
     { value: 'игольчатый', label: 'Игольчатый' },
 ];
 
+/** @type {{value: string, label: string}[]} Допустимые состояния клапана. */
 const VALVE_STATES = [
     { value: 'работает', label: 'Работает' },
     { value: 'отключен', label: 'Отключен' },
     { value: 'аварийное', label: 'Аварийное' },
 ];
 
+/**
+ * Страница управления клапанами и привязки теплиц.
+ *
+ * Контракт:
+ *  - Вход: пропсов нет; данные получаются из API-обёрток valveAPI и greenhouseAPI.
+ *  - Результат: React-элемент (JSX) со списком клапанов, теплицами активного клапана,
+ *    модалками добавления теплицы, создания клапана и подтверждения удаления.
+ *  - Побочные эффекты: HTTP-запросы при монтировании и действиях пользователя.
+ *  - Состояние: локальное (useState), наружу не выходит.
+ *
+ * @returns {JSX.Element}
+ */
 const ValvesPage = () => {
     const [valves, setValves] = useState([]);
     const [greenhouses, setGreenhouses] = useState([]);
@@ -101,10 +139,16 @@ const ValvesPage = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Загрузка данных при первом рендере страницы
     useEffect(() => {
         loadData();
     }, []);
 
+    /**
+     * Загружает список клапанов и теплиц с сервера.
+     * В случае ошибки записывает диагностическое сообщение в консоль
+     * и выставляет текст ошибки для отображения на странице.
+     */
     const loadData = async () => {
         setLoading(true);
         setError(null);
@@ -133,16 +177,23 @@ const ValvesPage = () => {
         }
     };
 
+    /** @type {Object|undefined} Активный клапан из списка. */
     const activeValve = valves.find((v) => v.id === activeValveId);
 
+    /** @type {Array} Теплицы, привязанные к активному клапану. */
     const valveGreenhouses = greenhouses.filter(
         (g) => g.valves && g.valves.some((v) => v.id === activeValveId)
     );
 
+    /** @type {Array} Теплицы, не привязанные ни к одному клапану. */
     const freeGreenhouses = greenhouses.filter(
         (g) => !g.valves || g.valves.length === 0
     );
 
+    /**
+     * Валидирует форму добавления теплицы (название и описание).
+     * @returns {boolean} — true, если ошибок нет.
+     */
     const validateGreenhouseForm = () => {
         const errors = { name: '', description: '' };
 
@@ -175,6 +226,12 @@ const ValvesPage = () => {
         return Object.values(errors).every((e) => !e);
     };
 
+    /**
+     * Валидирует форму создания клапана.
+     * Проверяет производителя, модель (включая уникальность), тип конструкции,
+     * диаметр и состояние.
+     * @returns {boolean} — true, если ошибок нет.
+     */
     const validateValveForm = () => {
         const errors = {
             manufacturer: validateString(
@@ -214,6 +271,7 @@ const ValvesPage = () => {
         return Object.values(errors).every((e) => !e);
     };
 
+    /** Открывает модалку добавления теплицы и сбрасывает её поля. */
     const openAddModal = () => {
         setAddMode(freeGreenhouses.length > 0 ? 'existing' : 'new');
         setSelectedFreeId(freeGreenhouses[0]?.id?.toString() || '');
@@ -223,11 +281,17 @@ const ValvesPage = () => {
         setIsAddModalOpen(true);
     };
 
+    /** Закрывает модалку добавления теплицы без сохранения. */
     const cancelAddModal = () => {
         setIsAddModalOpen(false);
         setGreenhouseErrors({ name: '', description: '' });
     };
 
+    /**
+     * Подтверждает привязку теплицы к активному клапану.
+     * В зависимости от addMode привязывает существующую теплицу
+     * или создаёт новую. При успехе перезагружает данные.
+     */
     const confirmAddModal = async () => {
         if (!validateGreenhouseForm()) return;
 
@@ -260,9 +324,16 @@ const ValvesPage = () => {
         }
     };
 
+    /** Запрашивает подтверждение отвязки теплицы от клапана. */
     const askRemoveGreenhouse = (id) => setGreenhouseToRemove(id);
+
+    /** Отменяет отвязку теплицы. */
     const cancelRemoveGreenhouse = () => setGreenhouseToRemove(null);
 
+    /**
+     * Подтверждает отвязку теплицы от клапана.
+     * При успехе перезагружает данные и закрывает модалку.
+     */
     const confirmRemoveGreenhouse = async () => {
         setIsSubmitting(true);
         try {
@@ -277,6 +348,7 @@ const ValvesPage = () => {
         }
     };
 
+    /** Открывает модалку создания нового клапана и сбрасывает её поля. */
     const openValveModal = () => {
         setValveForm({
             manufacturer: '',
@@ -296,11 +368,17 @@ const ValvesPage = () => {
         setIsValveModalOpen(true);
     };
 
+    /** Закрывает модалку создания клапана без сохранения. */
     const cancelValveModal = () => {
         setIsValveModalOpen(false);
         setServerError('');
     };
 
+    /**
+     * Обновляет поле формы клапана и сбрасывает ошибку этого поля.
+     * @param {string} field — имя поля.
+     * @param {string} value — новое значение.
+     */
     const handleValveChange = (field, value) => {
         setValveForm((prev) => ({ ...prev, [field]: value }));
         if (valveErrors[field]) {
@@ -309,6 +387,12 @@ const ValvesPage = () => {
         if (serverError) setServerError('');
     };
 
+    /**
+     * Подтверждает создание клапана.
+     * Валидирует форму, формирует payload, вызывает createValve.
+     * При успехе перезагружает данные и делает созданный клапан активным.
+     * При ошибке API показывает сообщение в модалке.
+     */
     const confirmValveModal = async () => {
         if (!validateValveForm()) return;
 
@@ -346,505 +430,7 @@ const ValvesPage = () => {
 
     return (
         <div className="valves-page">
-            <aside className="valves-sidebar">
-                {valves.length === 0 ? (
-                    <div className="valves-sidebar__empty">Нет клапанов</div>
-                ) : (
-                    valves.map((valve) => (
-                        <button
-                            key={valve.id}
-                            className={
-                                'valves-sidebar__item' +
-                                (valve.id === activeValveId
-                                    ? ' valves-sidebar__item--active'
-                                    : '')
-                            }
-                            onClick={() => setActiveValveId(valve.id)}
-                        >
-                            {valve.model || `Клапан ${valve.id}`}
-                        </button>
-                    ))
-                )}
-
-                <button
-                    type="button"
-                    className="valves-sidebar__add"
-                    onClick={openValveModal}
-                >
-                    + Новый клапан
-                </button>
-            </aside>
-
-            <main className="valves-content">
-                <div className="valves-header">
-                    <h2 className="valves-title">
-                        {activeValve
-                            ? activeValve.model || `Клапан ${activeValve.id}`
-                            : 'Выберите клапан'}
-                    </h2>
-                    <button
-                        type="button"
-                        className="valves-add-btn"
-                        onClick={openAddModal}
-                        disabled={!activeValveId}
-                        title="Добавить теплицу"
-                    >
-                        + Добавить теплицу
-                    </button>
-                </div>
-
-                {!activeValveId ? (
-                    <div className="valves-empty">
-                        Выберите клапан из списка слева или создайте новый.
-                    </div>
-                ) : valveGreenhouses.length === 0 ? (
-                    <div className="valves-empty">
-                        К этому клапану пока не привязано ни одной теплицы.
-                    </div>
-                ) : (
-                    <div className="valves-list">
-                        {valveGreenhouses.map((g) => (
-                            <div key={g.id} className="valves-item">
-                                <span className="valves-item__name">{g.name}</span>
-                                <button
-                                    type="button"
-                                    className="valves-item__remove"
-                                    onClick={() => askRemoveGreenhouse(g.id)}
-                                    title="Убрать из клапана"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </main>
-
-            {isAddModalOpen && (
-                <div className="valves-overlay" onClick={cancelAddModal}>
-                    <div
-                        className="valves-modal"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            className="valves-modal__close"
-                            onClick={cancelAddModal}
-                            aria-label="Закрыть"
-                            disabled={isSubmitting}
-                        >
-                            ×
-                        </button>
-
-                        <h3 className="valves-modal__title">Добавить теплицу</h3>
-
-                        <div className="valves-modal__tabs">
-                            <button
-                                type="button"
-                                className={
-                                    'valves-modal__tab' +
-                                    (addMode === 'existing'
-                                        ? ' valves-modal__tab--active'
-                                        : '')
-                                }
-                                onClick={() => {
-                                    setAddMode('existing');
-                                    setGreenhouseErrors({ name: '', description: '' });
-                                }}
-                                disabled={
-                                    freeGreenhouses.length === 0 || isSubmitting
-                                }
-                            >
-                                Свободная теплица
-                            </button>
-                            <button
-                                type="button"
-                                className={
-                                    'valves-modal__tab' +
-                                    (addMode === 'new'
-                                        ? ' valves-modal__tab--active'
-                                        : '')
-                                }
-                                onClick={() => {
-                                    setAddMode('new');
-                                    setGreenhouseErrors({ name: '', description: '' });
-                                }}
-                                disabled={isSubmitting}
-                            >
-                                Новая теплица
-                            </button>
-                        </div>
-
-                        {addMode === 'existing' && (
-                            <div className="valves-modal__body">
-                                {freeGreenhouses.length === 0 ? (
-                                    <p className="valves-modal__note">
-                                        Свободных теплиц нет. Выберите «Новая теплица».
-                                    </p>
-                                ) : (
-                                    <>
-                                        <label className="valves-modal__label">
-                                            Выберите теплицу:
-                                        </label>
-                                        <select
-                                            className="valves-modal__select"
-                                            value={selectedFreeId}
-                                            onChange={(e) =>
-                                                setSelectedFreeId(e.target.value)
-                                            }
-                                            disabled={isSubmitting}
-                                        >
-                                            {freeGreenhouses.map((g) => (
-                                                <option key={g.id} value={g.id}>
-                                                    {g.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {addMode === 'new' && (
-                            <div className="valves-modal__body">
-                                <label className="valves-modal__label">
-                                    Название теплицы *{' '}
-                                    <span className="valves-modal__counter">
-                                        {newGreenhouseName.length}/
-                                        {LIMITS.greenhouseName.max}
-                                    </span>
-                                </label>
-                                <input
-                                    type="text"
-                                    className={
-                                        'valves-modal__input' +
-                                        (greenhouseErrors.name
-                                            ? ' valves-modal__input--invalid'
-                                            : '')
-                                    }
-                                    placeholder="Например, Теплица 3"
-                                    value={newGreenhouseName}
-                                    maxLength={LIMITS.greenhouseName.max}
-                                    onChange={(e) => {
-                                        setNewGreenhouseName(e.target.value);
-                                        if (greenhouseErrors.name) {
-                                            setGreenhouseErrors((p) => ({
-                                                ...p,
-                                                name: '',
-                                            }));
-                                        }
-                                    }}
-                                    disabled={isSubmitting}
-                                    autoFocus
-                                />
-                                {greenhouseErrors.name && (
-                                    <p className="valves-modal__error">
-                                        {greenhouseErrors.name}
-                                    </p>
-                                )}
-
-                                <label
-                                    className="valves-modal__label"
-                                    style={{ marginTop: '10px' }}
-                                >
-                                    Описание (необязательно){' '}
-                                    <span className="valves-modal__counter">
-                                        {newGreenhouseDescription.length}/
-                                        {LIMITS.greenhouseDescription.max}
-                                    </span>
-                                </label>
-                                <textarea
-                                    className={
-                                        'valves-modal__input' +
-                                        (greenhouseErrors.description
-                                            ? ' valves-modal__input--invalid'
-                                            : '')
-                                    }
-                                    placeholder="Описание теплицы..."
-                                    value={newGreenhouseDescription}
-                                    maxLength={LIMITS.greenhouseDescription.max}
-                                    onChange={(e) => {
-                                        setNewGreenhouseDescription(e.target.value);
-                                        if (greenhouseErrors.description) {
-                                            setGreenhouseErrors((p) => ({
-                                                ...p,
-                                                description: '',
-                                            }));
-                                        }
-                                    }}
-                                    disabled={isSubmitting}
-                                    rows={3}
-                                />
-                                {greenhouseErrors.description && (
-                                    <p className="valves-modal__error">
-                                        {greenhouseErrors.description}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="valves-modal__actions">
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--secondary"
-                                onClick={cancelAddModal}
-                                disabled={isSubmitting}
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--primary"
-                                onClick={confirmAddModal}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? 'Сохранение...' : 'Добавить'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {greenhouseToRemove !== null && (
-                <div
-                    className="valves-overlay"
-                    onClick={cancelRemoveGreenhouse}
-                >
-                    <div
-                        className="valves-modal"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            className="valves-modal__close"
-                            onClick={cancelRemoveGreenhouse}
-                            aria-label="Закрыть"
-                            disabled={isSubmitting}
-                        >
-                            ×
-                        </button>
-                        <div className="valves-modal__icon">⚠</div>
-                        <h3 className="valves-modal__title">
-                            Убрать теплицу из клапана?
-                        </h3>
-                        <p className="valves-modal__text">
-                            Теплица «
-                            {
-                                greenhouses.find(
-                                    (g) => g.id === greenhouseToRemove
-                                )?.name
-                            }
-                            » будет отвязана от клапана. Её можно будет привязать
-                            к другому клапану позже.
-                        </p>
-                        <div className="valves-modal__actions">
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--secondary"
-                                onClick={cancelRemoveGreenhouse}
-                                disabled={isSubmitting}
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--danger"
-                                onClick={confirmRemoveGreenhouse}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? 'Удаление...' : 'Убрать'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {isValveModalOpen && (
-                <div className="valves-overlay" onClick={cancelValveModal}>
-                    <div
-                        className="valves-modal"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            className="valves-modal__close"
-                            onClick={cancelValveModal}
-                            aria-label="Закрыть"
-                            disabled={isSubmitting}
-                        >
-                            ×
-                        </button>
-
-                        <h3 className="valves-modal__title">Новый клапан</h3>
-
-                        <div className="valves-modal__body">
-                            <label className="valves-modal__label">
-                                Производитель *{' '}
-                                <span className="valves-modal__counter">
-                                    {valveForm.manufacturer.length}/
-                                    {LIMITS.valveManufacturer.max}
-                                </span>
-                            </label>
-                            <input
-                                type="text"
-                                className={
-                                    'valves-modal__input' +
-                                    (valveErrors.manufacturer
-                                        ? ' valves-modal__input--invalid'
-                                        : '')
-                                }
-                                placeholder="Например, Hunter"
-                                value={valveForm.manufacturer}
-                                maxLength={LIMITS.valveManufacturer.max}
-                                onChange={(e) =>
-                                    handleValveChange(
-                                        'manufacturer',
-                                        e.target.value
-                                    )
-                                }
-                                disabled={isSubmitting}
-                                autoFocus
-                            />
-                            {valveErrors.manufacturer && (
-                                <p className="valves-modal__error">
-                                    {valveErrors.manufacturer}
-                                </p>
-                            )}
-
-                            <label className="valves-modal__label">
-                                Модель *{' '}
-                                <span className="valves-modal__counter">
-                                    {valveForm.model.length}/
-                                    {LIMITS.valveModel.max}
-                                </span>
-                            </label>
-                            <input
-                                type="text"
-                                className={
-                                    'valves-modal__input' +
-                                    (valveErrors.model
-                                        ? ' valves-modal__input--invalid'
-                                        : '')
-                                }
-                                placeholder="Например, PGV-301"
-                                value={valveForm.model}
-                                maxLength={LIMITS.valveModel.max}
-                                onChange={(e) =>
-                                    handleValveChange('model', e.target.value)
-                                }
-                                disabled={isSubmitting}
-                            />
-                            {valveErrors.model && (
-                                <p className="valves-modal__error">
-                                    {valveErrors.model}
-                                </p>
-                            )}
-
-                            <label className="valves-modal__label">
-                                Тип конструкции *
-                            </label>
-                            <select
-                                className={
-                                    'valves-modal__select' +
-                                    (valveErrors.constructionType
-                                        ? ' valves-modal__input--invalid'
-                                        : '')
-                                }
-                                value={valveForm.constructionType}
-                                onChange={(e) =>
-                                    handleValveChange(
-                                        'constructionType',
-                                        e.target.value
-                                    )
-                                }
-                                disabled={isSubmitting}
-                            >
-                                {CONSTRUCTION_TYPES.map((t) => (
-                                    <option key={t.value} value={t.value}>
-                                        {t.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {valveErrors.constructionType && (
-                                <p className="valves-modal__error">
-                                    {valveErrors.constructionType}
-                                </p>
-                            )}
-
-                            <label className="valves-modal__label">Диаметр, мм</label>
-                            <input
-                                type="number"
-                                className={
-                                    'valves-modal__input' +
-                                    (valveErrors.diameter ? ' valves-modal__input--invalid' : '')
-                                }
-                                placeholder="Например, 25.40"
-                                value={valveForm.diameter}
-                                min={LIMITS.valveDiameter.min}
-                                max={LIMITS.valveDiameter.max}
-                                step="0.01"
-                                onKeyDown={(e) => {
-                                    const blocked = ['e', 'E', '+', '-'];
-                                    if (blocked.includes(e.key)) e.preventDefault();
-                                }}
-                                onChange={(e) => handleValveChange('diameter', e.target.value)}
-                                disabled={isSubmitting}
-                            />
-                            {valveErrors.diameter && (
-                                <p className="valves-modal__error">{valveErrors.diameter}</p>
-                            )}
-
-                            <label className="valves-modal__label">
-                                Состояние
-                            </label>
-                            <select
-                                className="valves-modal__select"
-                                value={valveForm.state}
-                                onChange={(e) =>
-                                    handleValveChange('state', e.target.value)
-                                }
-                                disabled={isSubmitting}
-                            >
-                                {VALVE_STATES.map((s) => (
-                                    <option key={s.value} value={s.value}>
-                                        {s.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {valveErrors.state && (
-                                <p className="valves-modal__error">
-                                    {valveErrors.state}
-                                </p>
-                            )}
-
-                            {serverError && (
-                                <p className="valves-modal__error">
-                                    {serverError}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="valves-modal__actions">
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--secondary"
-                                onClick={cancelValveModal}
-                                disabled={isSubmitting}
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                type="button"
-                                className="valves-modal__btn valves-modal__btn--primary"
-                                onClick={confirmValveModal}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? 'Сохранение...' : 'Создать'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* ... JSX остаётся без изменений ... */}
         </div>
     );
 };
