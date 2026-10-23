@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:coverage": "jest --runInBand --coverage",
+    "test:sql": "psql -h localhost -U app_user -d watering -v ON_ERROR_STOP=1 -f ../database/tests.sql",
+    "test:sql:data": "psql -h localhost -U app_user -d watering -v ON_ERROR_STOP=1 -f ../database/test-data.sql"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "jest": "^30.5.2",
     "nodemon": "^3.1.14",
+    "sqlite3": "^6.0.1",
     "supertest": "^7.2.2"
   },
   "jest": {
@@ -36,9 +40,13 @@
     ],
     "testMatch": [
       "**/test-*.js"
+    ],
+    "moduleDirectories": [
+      "node_modules",
+      "<rootDir>"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.js"
     ]
-  },
-  "directories": {
-    "test": "test"
   }
 }

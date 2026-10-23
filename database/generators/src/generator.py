@@ -1,3 +1,10 @@
+"""
+Модуль генерации данных для системы AgroSystem.
+
+Этот модуль предназначен для эмуляции показаний датчиков (температура, влажность,
+электропроводность, pH) на основе выбранного сценария и сохранения их в базу данных PostgreSQL.
+"""
+
 import psycopg2
 import random
 from datetime import datetime, date
@@ -7,6 +14,7 @@ import sys
 
 from config import get_db_config  
 
+# Словарь сценариев: содержит диапазоны значений для разных погодных условий
 SCENARIOS = {
     1: {
         'name': 'Лето',
@@ -37,6 +45,7 @@ SCENARIOS = {
     }
 }
 
+# Смещения показаний для каждого клапана (разные зоны теплицы)
 VALVE_OFFSETS = {
     1: {'temp': +1, 'humidity': -2, 'ec': +0.1, 'ph': +0.1},
     2: {'temp': +2, 'humidity': -5, 'ec': -0.1, 'ph': +0.2},
@@ -44,7 +53,14 @@ VALVE_OFFSETS = {
     4: {'temp': -1, 'humidity': +3, 'ec': -0.1, 'ph': +0.1},
 }
 
-def choose_scenario():
+
+def choose_scenario() -> int:
+    """
+    Запрашивает у пользователя выбор сценария генерации через консоль.
+    
+    Returns:
+        int: Номер выбранного сценария (1, 2 или 3).
+    """
     print("\nГЕНЕРАТОР ДАННЫХ - ВЫБОР СЦЕНАРИЯ")
     print("  1. Лето (жарко, солнечно)")
     print("  2. Осень / Весна (умеренно)")
@@ -59,23 +75,42 @@ def choose_scenario():
         except ValueError:
             print("Введите число")
 
-def generate_sensor_data(valve_id, scenario_config):
+
+def generate_sensor_data(valve_id: int, scenario_config: dict) -> dict:
+    """
+    Генерирует случайные данные с датчиков на основе заданного сценария.
+    
+    Args:
+        valve_id (int): Идентификатор клапана (1-4). Влияет на смещение показаний.
+        scenario_config (dict): Словарь с диапазонами значений для выбранного сценария.
+    
+    Returns:
+        dict: Словарь с ключами 'temp', 'humidity', 'ec', 'ph' (числа с плавающей точкой)
+              и 'weather' (строка). Значения округлены и ограничены допустимыми пределами.
+              
+    Raises:
+        KeyError: Если в переданном словаре scenario_config отсутствуют необходимые ключи.
+    """
+    # Извлекаем диапазоны из конфигурации сценария
     temp_min, temp_max = scenario_config['temp_range']
     hum_min, hum_max = scenario_config['humidity_range']
     ec_min, ec_max = scenario_config['ec_range']
     ph_min, ph_max = scenario_config['ph_range']
     
+    # Генерируем базовые значения в заданных пределах
     temp = random.uniform(temp_min, temp_max)
     humidity = random.uniform(hum_min, hum_max)
     ec = random.uniform(ec_min, ec_max)
     ph = random.uniform(ph_min, ph_max)
     
+    # Применяем смещения для конкретного клапана
     offset = VALVE_OFFSETS.get(valve_id, {'temp': 0, 'humidity': 0, 'ec': 0, 'ph': 0})
     temp += offset['temp']
     humidity += offset['humidity']
     ec += offset['ec']
     ph += offset['ph']
     
+    # Ограничиваем значения физическими рамками (защита от выхода за пределы)
     temp = max(0, min(45, temp))
     humidity = max(20, min(95, humidity))
     ec = max(0.5, min(5.0, ec))
@@ -91,7 +126,21 @@ def generate_sensor_data(valve_id, scenario_config):
         'weather': weather
     }
 
-def save_to_database(cursor, valve_id, data):
+
+def save_to_database(cursor, valve_id: int, data: dict) -> None:
+    """
+    Сохраняет сгенерированные данные в таблицу 'ежедневные_условия' базы данных.
+    
+    Выполняет INSERT запрос с обновлением (ON CONFLICT) при повторной записи за ту же дату.
+    
+    Args:
+        cursor: Объект курсора (psycopg2) для выполнения SQL-запросов.
+        valve_id (int): Идентификатор клапана.
+        data (dict): Словарь с данными датчиков (результат generate_sensor_data).
+        
+    Side effects:
+        Изменяет состояние базы данных (выполняет SQL-запрос).
+    """
     query = """
         INSERT INTO ежедневные_условия 
         (id_клапана, дата, температура_по_дню, погода, ср_влажность, ср_электропроводность, ср_ph)
@@ -109,9 +158,11 @@ def save_to_database(cursor, valve_id, data):
     ))
 
 
-
-
 def main():
+    """
+    Точка входа в программу. Разбирает аргументы командной строки,
+    подключается к базе данных и запускает генерацию для всех клапанов.
+    """
     # Windows: чтобы русский текст в stdout не падал
     try:
         sys.stdout.reconfigure(encoding='utf-8')

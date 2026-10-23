@@ -1,0 +1,14 @@
+﻿psql.exe : psql:database/tests.sql:26: ОШИБКА:  новая строка в отношении "состав_раствора" нарушает ограничение-проверку "состав_раствора_ед_измерения_check"
+строка:1 знак:1
++ & "C:\Program Files\PostgreSQL\16\bin\psql.exe" -h localhost -U app_u ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql:database/t...змерения_check":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+�����������:  Ошибочная строка содержит (35, 1, 1, 999999.00, кг).
+��������:  SQL-оператор: "INSERT INTO public."состав_раствора"
+
+            ("id_раствора", "id_добавки", "количество_добавки", "ед_измерения")
+
+        VALUES (1, 1, 999999, 'кг')"
+функция PL/pgSQL inline_code_block, строка 4, оператор SQL-оператор
