@@ -48,5 +48,8 @@
     "setupFilesAfterEnv": [
       "<rootDir>/test/setup.js"
     ]
+  },
+  "directories": {
+    "test": "test"
   }
 }
