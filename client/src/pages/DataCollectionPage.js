@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './DataCollectionPage.css';
-import { generatorsApi } from '../api/generatorsApi';
+import { generatorsApi } from '../http';
 
 // Локальная дата в формате YYYY-MM-DD (не UTC!)
 const getLocalToday = () => {

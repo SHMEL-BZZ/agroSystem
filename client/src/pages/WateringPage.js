@@ -1,24 +1,20 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './WateringPage.css';
 import Toast from '../components/Toast';
-import { valvesApi } from '../api/valvesApi';
-import { tanksApi } from '../api/tanksApi';
-import { wateringScheduleApi } from '../api/wateringScheduleApi';
-import { wateringApi } from '../api/wateringApi';
+import { valvesApi, tanksApi, wateringScheduleApi } from '../http';
 
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
 
+    // ─── Клапаны из БД ───────────────────────────────────────
     const [valves, setValves] = useState([]);
 
+    // ─── Баки из БД ──────────────────────────────────────────
     const [sourceTanks, setSourceTanks] = useState([]);
 
     const [toastMessage, setToastMessage] = useState('');
 
-    const [historyLoading, setHistoryLoading] = useState(false);
-    const [historyError, setHistoryError] = useState(null);
-    const [historyRows, setHistoryRows] = useState([]);
-
+    // Санитайзер числового ввода: только цифры и максимум одна точка
     function sanitizeNumber(value) {
         if (value === '' || value === null || value === undefined) return '';
         let str = String(value);
@@ -33,6 +29,7 @@ const WateringPage = () => {
         return str;
     }
 
+    // Санитайзер целого числа: только цифры
     function sanitizeInteger(value) {
         if (value === '' || value === null || value === undefined) return '';
         return String(value).replace(/\D/g, '');
@@ -89,6 +86,7 @@ const WateringPage = () => {
             .getByDate(selectedDate)
             .then((rows) => {
                 if (!rows || rows.length === 0) {
+                    // Нет расписания — дефолтные два пустых периода
                     setPeriods([
                         { id: 1, name: 'Период 1', start: '', duration: '', volume: '' },
                         { id: 2, name: 'Период 2', start: '', duration: '', volume: '' },
@@ -99,6 +97,7 @@ const WateringPage = () => {
                     return;
                 }
 
+                // Восстанавливаем периоды
                 const restored = rows.map((r) => ({
                     id: r.periodNumber,
                     name: `Период ${r.periodNumber}`,
@@ -107,6 +106,8 @@ const WateringPage = () => {
                     volume: String(r.periodVolume || ''),
                 }));
 
+                // Восстанавливаем распределение по бакам
+                // Ответ сервера: r.tanks = [{ tankId, volume }]
                 const tanksByPeriod = {};
                 const valvesByPeriod = {};
 
@@ -116,6 +117,8 @@ const WateringPage = () => {
                         volume: String(t.volume),
                     }));
 
+                    // Ответ сервера: r.valves = [{ valveId, volume }]
+                    // Нам нужно: { [valveId]: { enabled, volume } }
                     const vm = {};
                     (r.valves || []).forEach((v) => {
                         vm[v.valveId] = {
@@ -133,40 +136,6 @@ const WateringPage = () => {
             })
             .catch((err) => console.error('Ошибка загрузки расписания:', err));
     }, [selectedDate]);
-
-    // ─── Загрузка истории поливов за прошлый день ───
-    useEffect(() => {
-        if (!isPast) {
-            setHistoryRows([]);
-            setHistoryError(null);
-            return;
-        }
-
-        let cancelled = false;
-        setHistoryLoading(true);
-        setHistoryError(null);
-
-        wateringApi
-            .getByDate(selectedDate)
-            .then((rows) => {
-                if (cancelled) return;
-                setHistoryRows(Array.isArray(rows) ? rows : []);
-            })
-            .catch((err) => {
-                if (cancelled) return;
-                console.error('Ошибка загрузки истории поливов:', err);
-                setHistoryError(
-                    err.message || 'Не удалось загрузить историю поливов'
-                );
-            })
-            .finally(() => {
-                if (!cancelled) setHistoryLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [selectedDate, isPast]);
 
     // ─── Производные значения ────────────────────────────────
     const duplicateStartIds = (() => {
@@ -310,6 +279,7 @@ const WateringPage = () => {
     const exceedsValveVolume = totalValveVolume > activePeriodVolume;
     const valveOverflow = Math.max(0, totalValveVolume - activePeriodVolume);
 
+    // Проверка: полностью ли заполнен период (для сохранения)
     const isPeriodFilled = (periodId) => {
         const period = periods.find((p) => p.id === periodId);
         if (!period) return false;
@@ -332,6 +302,7 @@ const WateringPage = () => {
 
     const hasAnyFilledPeriod = periods.some((p) => isPeriodFilled(p.id));
 
+    // ─── Сохранение в БД ─────────────────────────────────────
     const handleSave = async () => {
         const filledPeriods = periods.filter((p) => isPeriodFilled(p.id));
 
@@ -342,6 +313,7 @@ const WateringPage = () => {
             return;
         }
 
+        // Проверки на превышение
         for (const p of filledPeriods) {
             const rows = tankRowsByPeriod[p.id] || [];
             const sum = rows.reduce((s, r) => {
@@ -372,6 +344,9 @@ const WateringPage = () => {
             }
         }
 
+        // Формат payload, который понимает сервер:
+        // periods[].tanks = [{ tankId, volume }]
+        // periods[].valves = { [valveId]: { enabled, volume } }
         const payload = {
             date: selectedDate,
             periods: filledPeriods.map((p) => ({
@@ -491,104 +466,6 @@ const WateringPage = () => {
         });
     };
 
-    // ─── Вспомогательные функции для истории ───
-    const formatTime = (iso) => {
-        if (!iso) return '—';
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return '—';
-        return d.toTimeString().slice(0, 5);
-    };
-
-    const fmt = (n, digits = 2) => {
-        const num = Number(n);
-        if (Number.isNaN(num)) return '—';
-        return num.toFixed(digits);
-    };
-
-    const sumDrain = (drains) =>
-        (drains || []).reduce((s, d) => s + (Number(d.drainVolume) || 0), 0);
-
-    // ─── Компонент истории поливов ───
-    const HistoryTable = ({ rows, loading, error }) => {
-        if (loading) {
-            return (
-                <div className="watering-history__placeholder">Загрузка истории…</div>
-            );
-        }
-        if (error) {
-            return <div className="watering-error-banner">⚠ {error}</div>;
-        }
-        if (!rows.length) {
-            return (
-                <div className="watering-history__placeholder">
-                    За эту дату поливов в системе не зафиксировано.
-                </div>
-            );
-        }
-
-        return (
-            <div className="watering-table-wrapper">
-                <table className="watering-table watering-history__table">
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th>Время старта</th>
-                            <th>Длительность, мин</th>
-                            <th>Объём воды, л</th>
-                            <th>Дренаж, л</th>
-                            <th>Дренаж, %</th>
-                            <th>Клапан</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((w, idx) => {
-                            const drainSum = sumDrain(w.drains);
-                            const waterVol = Number(w.waterVolume) || 0;
-                            const drainPercent =
-                                waterVol > 0 ? (drainSum / waterVol) * 100 : 0;
-
-                            return (
-                                <tr key={w.id ?? idx}>
-                                    <td>{idx + 1}</td>
-                                    <td>{formatTime(w.startTime)}</td>
-                                    <td>{w.duration ?? '—'}</td>
-                                    <td>{fmt(waterVol)}</td>
-                                    <td>{fmt(drainSum)}</td>
-                                    <td>{fmt(drainPercent, 1)}</td>
-                                    <td>
-                                        {w.condition?.valve?.model ||
-                                            w.valve?.model ||
-                                            (w.condition?.valveId
-                                                ? `Клапан ${w.condition.valveId}`
-                                                : '—')}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-
-                <div className="watering-history__totals">
-                    Всего поливов: <b>{rows.length}</b>
-                    {' · '}
-                    Объём воды:{' '}
-                    <b>
-                        {fmt(
-                            rows.reduce(
-                                (s, w) => s + (Number(w.waterVolume) || 0),
-                                0
-                            )
-                        )}{' '}
-                        л
-                    </b>
-                    {' · '}
-                    Дренаж:{' '}
-                    <b>{fmt(rows.reduce((s, w) => s + sumDrain(w.drains), 0))} л</b>
-                </div>
-            </div>
-        );
-    };
-
     // ─── Шаг 1: таблица периодов ────────────────────────────
     if (step === 'setup') {
         return (
@@ -649,200 +526,165 @@ const WateringPage = () => {
                         )}
                     </div>
 
-                    {/* ─── История поливов за прошлую дату ─── */}
-                    {isPast && (
-                        <div className="watering-history">
-                            <h3 className="watering-history__title">
-                                Фактические поливы за {selectedDate}
-                            </h3>
-                            <HistoryTable
-                                rows={historyRows}
-                                loading={historyLoading}
-                                error={historyError}
-                            />
+                    {periods.length > 3 && (
+                        <WarningBanner>
+                            Столько периодов полива может быть нецелесообразно.
+                            Проверьте, нужны ли все.
+                        </WarningBanner>
+                    )}
+
+                    {hasDuplicateStart && (
+                        <div className="watering-error-banner">
+                            ⚠ У нескольких периодов одинаковое время начала.
+                            Измените время, чтобы оно было уникальным.
                         </div>
                     )}
 
-                    {/* ─── Редактируемое расписание (только для сегодня / будущего) ─── */}
-                    {!isPast && (
-                        <>
-                            {periods.length > 3 && (
-                                <WarningBanner>
-                                    Столько периодов полива может быть нецелесообразно.
-                                    Проверьте, нужны ли все.
-                                </WarningBanner>
-                            )}
-
-                            {hasDuplicateStart && (
-                                <div className="watering-error-banner">
-                                    ⚠ У нескольких периодов одинаковое время начала.
-                                    Измените время, чтобы оно было уникальным.
-                                </div>
-                            )}
-
-                            {hasPartialPeriod && !hasDuplicateStart && (
-                                <div className="watering-error-banner">
-                                    ⚠ Есть частично заполненные периоды. Заполните их
-                                    полностью (время начала, длительность, объём) или
-                                    очистите.
-                                </div>
-                            )}
-
-                            <div className="watering-table-wrapper">
-                                <table className="watering-table">
-                                    <thead>
-                                        <tr>
-                                            <th></th>
-                                            {periods.map((p) => (
-                                                <th key={p.id}>
-                                                    <div className="watering-table__head">
-                                                        <span>{p.name}</span>
-                                                        {periods.length > 2 && (
-                                                            <button
-                                                                type="button"
-                                                                className="watering-table__remove"
-                                                                onClick={() =>
-                                                                    askDeletePeriod(p.id)
-                                                                }
-                                                                title="Удалить период"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </th>
-                                            ))}
-                                            <th className="watering-table__add-cell">
-                                                <button
-                                                    type="button"
-                                                    className="watering-table__add"
-                                                    onClick={addPeriod}
-                                                    title="Добавить период"
-                                                >
-                                                    +
-                                                </button>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Время начала</td>
-                                            {periods.map((p) => (
-                                                <td key={p.id}>
-                                                    <input
-                                                        type="time"
-                                                        data-testid={`period-start-${p.id}`}
-                                                        className={
-                                                            'watering-table__input' +
-                                                            (duplicateStartIds.has(p.id)
-                                                                ? ' watering-table__input--invalid'
-                                                                : '')
-                                                        }
-                                                        value={p.start}
-                                                        disabled={!isEditable}
-                                                        onChange={(e) =>
-                                                            updatePeriod(
-                                                                p.id,
-                                                                'start',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </td>
-                                            ))}
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Длительность</td>
-                                            {periods.map((p) => (
-                                                <td key={p.id}>
-                                                    <div className="watering-table__duration">
-                                                        <input
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            pattern="[0-9]*"
-                                                            maxLength="2"
-                                                            className="watering-table__input watering-table__input--duration"
-                                                            placeholder="мин"
-                                                            value={p.duration}
-                                                            disabled={!isEditable}
-                                                            onChange={(e) =>
-                                                                updatePeriod(
-                                                                    p.id,
-                                                                    'duration',
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                        />
-                                                        <span className="watering-table__duration-unit">
-                                                            мин
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            ))}
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Объём</td>
-                                            {periods.map((p) => (
-                                                <td key={p.id}>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        className="watering-table__input"
-                                                        placeholder={`до ${tankVolume}`}
-                                                        value={p.volume}
-                                                        disabled={!isEditable}
-                                                        onChange={(e) =>
-                                                            updatePeriod(
-                                                                p.id,
-                                                                'volume',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </td>
-                                            ))}
-                                            <td></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="watering-button"
-                                onClick={() => setStep('distribution')}
-                                disabled={!canGoToDistribution}
-                                title={
-                                    !isEditable
-                                        ? 'Просмотр прошлых данных. Изменения недоступны'
-                                        : hasDuplicateStart
-                                            ? 'У периодов одинаковое время начала'
-                                            : hasPartialPeriod
-                                                ? 'Заполните периоды полностью или очистите их'
-                                                : !hasAnyCompletePeriod
-                                                    ? 'Заполните хотя бы один период полностью'
-                                                    : 'Перейти к распределению по баку и клапанам'
-                                }
-                            >
-                                Настройка полива
-                            </button>
-
-                            <p className="watering-tank-note">
-                                Заданный объём бака для полива: <b>{tankVolume} л.</b>{' '}
-                                Для изменения{' '}
-                                <button
-                                    type="button"
-                                    className="watering-tank-note__link"
-                                    onClick={() => setStep('distribution')}
-                                >
-                                    перейти в настройки полива
-                                </button>
-                                .
-                            </p>
-                        </>
+                    {hasPartialPeriod && !hasDuplicateStart && (
+                        <div className="watering-error-banner">
+                            ⚠ Есть частично заполненные периоды. Заполните их полностью
+                            (время начала, длительность, объём) или очистите.
+                        </div>
                     )}
+
+                    <div className="watering-table-wrapper">
+                        <table className="watering-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    {periods.map((p) => (
+                                        <th key={p.id}>
+                                            <div className="watering-table__head">
+                                                <span>{p.name}</span>
+                                                {periods.length > 2 && (
+                                                    <button
+                                                        type="button"
+                                                        className="watering-table__remove"
+                                                        onClick={() => askDeletePeriod(p.id)}
+                                                        title="Удалить период"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </th>
+                                    ))}
+                                    <th className="watering-table__add-cell">
+                                        <button
+                                            type="button"
+                                            className="watering-table__add"
+                                            onClick={addPeriod}
+                                            title="Добавить период"
+                                        >
+                                            +
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Время начала</td>
+                                    {periods.map((p) => (
+                                        <td key={p.id}>
+                                            <input
+                                                type="time"
+                                                className={
+                                                    'watering-table__input' +
+                                                    (duplicateStartIds.has(p.id)
+                                                        ? ' watering-table__input--invalid'
+                                                        : '')
+                                                }
+                                                value={p.start}
+                                                disabled={!isEditable}
+                                                onChange={(e) =>
+                                                    updatePeriod(p.id, 'start', e.target.value)
+                                                }
+                                            />
+                                        </td>
+                                    ))}
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Длительность</td>
+                                    {periods.map((p) => (
+                                        <td key={p.id}>
+                                            <div className="watering-table__duration">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    maxLength="2"
+                                                    className="watering-table__input watering-table__input--duration"
+                                                    placeholder="мин"
+                                                    value={p.duration}
+                                                    disabled={!isEditable}
+                                                    onChange={(e) =>
+                                                        updatePeriod(p.id, 'duration', e.target.value)
+                                                    }
+                                                />
+                                                <span className="watering-table__duration-unit">
+                                                    мин
+                                                </span>
+                                            </div>
+                                        </td>
+                                    ))}
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Объём</td>
+                                    {periods.map((p) => (
+                                        <td key={p.id}>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                className="watering-table__input"
+                                                placeholder={`до ${tankVolume}`}
+                                                value={p.volume}
+                                                disabled={!isEditable}
+                                                onChange={(e) =>
+                                                    updatePeriod(p.id, 'volume', e.target.value)
+                                                }
+                                            />
+                                        </td>
+                                    ))}
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="watering-button"
+                        onClick={() => setStep('distribution')}
+                        disabled={!canGoToDistribution}
+                        title={
+                            !isEditable
+                                ? 'Просмотр прошлых данных. Изменения недоступны'
+                                : hasDuplicateStart
+                                    ? 'У периодов одинаковое время начала'
+                                    : hasPartialPeriod
+                                        ? 'Заполните периоды полностью или очистите их'
+                                        : !hasAnyCompletePeriod
+                                            ? 'Заполните хотя бы один период полностью'
+                                            : 'Перейти к распределению по баку и клапанам'
+                        }
+                    >
+                        Настройка полива
+                    </button>
+
+                    <p className="watering-tank-note">
+                        Заданный объём бака для полива: <b>{tankVolume} л.</b>{' '}
+                        Для изменения{' '}
+                        <button
+                            type="button"
+                            className="watering-tank-note__link"
+                            onClick={() => setStep('distribution')}
+                        >
+                            перейти в настройки полива
+                        </button>
+                        .
+                    </p>
                 </div>
                 <Toast message={toastMessage} onClose={() => setToastMessage('')} />
             </div>
@@ -960,10 +802,7 @@ const WateringPage = () => {
                                 value={activeRows.length || ''}
                                 placeholder={`0–${MAX_TANKS}`}
                                 onChange={(e) =>
-                                    handleTanksCountChange(
-                                        activePeriodId,
-                                        e.target.value
-                                    )
+                                    handleTanksCountChange(activePeriodId, e.target.value)
                                 }
                             />
                             <span className="distribution__unit">шт.</span>
@@ -980,9 +819,7 @@ const WateringPage = () => {
                                     );
 
                                     const usedElsewhere = activeRows
-                                        .map((r, i) =>
-                                            i === index ? null : r.tankId
-                                        )
+                                        .map((r, i) => (i === index ? null : r.tankId))
                                         .filter(Boolean)
                                         .map(Number);
 
@@ -1053,8 +890,8 @@ const WateringPage = () => {
                                     <div className="distribution__warning">
                                         <b>⚠ Превышен объём периода.</b> Задано{' '}
                                         <b>{activePeriodVolume} л</b>, а распределено{' '}
-                                        <b>{totalMixVolume.toFixed(2)} л</b>. Уменьшите
-                                        объёмы на <b>{overflow.toFixed(2)} л</b>.
+                                        <b>{totalMixVolume.toFixed(2)} л</b>. Уменьшите объёмы
+                                        на <b>{overflow.toFixed(2)} л</b>.
                                     </div>
                                 )}
                             </div>
@@ -1102,9 +939,7 @@ const WateringPage = () => {
                                         <span className="valves-block__toggle-slider" />
                                     </label>
 
-                                    <span className="valves-block__name">
-                                        {valve.name}
-                                    </span>
+                                    <span className="valves-block__name">{valve.name}</span>
 
                                     <input
                                         type="text"

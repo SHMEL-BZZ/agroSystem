@@ -1,4 +1,5 @@
 import { makeAutoObservable } from "mobx";
+import { valvesApi } from "../http";
 
 export default class GreenhouseStore {
     constructor() {
@@ -51,7 +52,7 @@ export default class GreenhouseStore {
 
         try {
             // Вызов API
-            await linkGreenhouseToValve(this._selectedValve.id, payload);
+            await valvesApi.linkGreenhouse(this._selectedValve.id, payload);
             alert("Успешно привязано!");
         } catch (e) {
             alert(e.response?.data?.message || "Ошибка при привязке");
