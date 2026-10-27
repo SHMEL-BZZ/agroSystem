@@ -1,4 +1,4 @@
-﻿// SolutionsPage.js
+// SolutionsPage.js
 import Toast from '../components/Toast';
 import React, { useState, useRef, useEffect } from 'react';
 import './SolutionsPage.css';
@@ -10,15 +10,7 @@ import {
     formatDoseRange,
     getUnitForForm,
 } from '../utils/dosing';
-import {
-    fetchTanks,
-    createTank,
-    updateTank,
-    deleteTank,
-    fetchSolutionsByTank,
-    createSolutionHistory,
-    createSolutionComposition,
-} from '../http/tankAPI';
+import { tanksApi, solutionHistoryApi, solutionCompositionApi } from '../http';
 
 // Константы
 const WATER_ADDITIVE_ID = 10;
@@ -168,11 +160,11 @@ const SolutionsPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const tanksData = await fetchTanks();
+            const tanksData = await tanksApi.getAll();
 
             const enriched = await Promise.all(
                 tanksData.map(async (t) => {
-                    const solutions = await fetchSolutionsByTank(t.id);
+                    const solutions = await solutionHistoryApi.getByTank(t.id);
                     const { usedLiters, items } = aggregateTankState(solutions);
                     return {
                         id: t.id,
@@ -228,7 +220,7 @@ const SolutionsPage = () => {
 
     const confirmDeleteTank = async () => {
         try {
-            await deleteTank(tankToDelete);
+            await tanksApi.remove(tankToDelete);
             setTankToDelete(null);
             await loadTanks();
         } catch (e) {
@@ -256,7 +248,7 @@ const SolutionsPage = () => {
         }
 
         try {
-            const created = await createTank({ volume });
+            const created = await tanksApi.create({ volume });
             setIsAddTankOpen(false);
             setNewTankVolume('2000');
             await loadTanks();
@@ -284,7 +276,7 @@ const SolutionsPage = () => {
         if (volumeTimerRef.current) clearTimeout(volumeTimerRef.current);
         if (volume > 0) {
             volumeTimerRef.current = setTimeout(() => {
-                updateTank(activeTankId, { volume }).catch((err) =>
+                tanksApi.update(activeTankId, { volume }).catch((err) =>
                     console.error('updateTank:', err)
                 );
             }, 500);
@@ -645,7 +637,7 @@ const SolutionsPage = () => {
         });
 
         try {
-            const history = await createSolutionHistory({
+            const history = await solutionHistoryApi.create({
                 tankId: activeTankId,
                 totalVolume: Number(total.toFixed(3)),
             });
@@ -666,7 +658,7 @@ const SolutionsPage = () => {
                 });
             }
 
-            await Promise.all(payloads.map(createSolutionComposition));
+            await Promise.all(payloads.map(solutionCompositionApi.create));
 
             await loadTanks();
 

@@ -37,9 +37,10 @@ app.use(errorHandler)
 // подключение к БД
 const start = async () => {
     try {
-        await sequelize.authenticate(); // вызов функции для подключения к базе данных
-        await sequelize.sync() // сверяет бд и данные с приложения
+        await sequelize.authenticate();
+        await sequelize.sync();
         app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
         const cron = require('node-cron');
 
         // Каждую минуту проверяем расписание
@@ -51,9 +52,10 @@ const start = async () => {
             }
         });
     } catch (e) {
-        console.log(e)
+        console.log(e);
     }
-}
+};
+
 
 start();
 

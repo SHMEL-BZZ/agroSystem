@@ -1,11 +1,11 @@
 // client/src/config/api.js
 
-// Базовый URL сервера.
-// В dev-режиме — localhost, в продакшене — реальный домен.
+// Р‘Р°Р·РѕРІС‹Р№ URL СЃРµСЂРІРµСЂР°.
+// Р’ dev-СЂРµР¶РёРјРµ вЂ” localhost, РІ РїСЂРѕРґР°РєС€РµРЅРµ вЂ” СЂРµР°Р»СЊРЅС‹Р№ РґРѕРјРµРЅ.
 export const API_BASE_URL =
     process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Все эндпоинты в одном месте — чтобы не искать строки по коду
+// Р’СЃРµ СЌРЅРґРїРѕРёРЅС‚С‹ РІ РѕРґРЅРѕРј РјРµСЃС‚Рµ вЂ” С‡С‚РѕР±С‹ РЅРµ РёСЃРєР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ РєРѕРґСѓ
 export const ENDPOINTS = {
     auth: {
         login: '/user/login',
@@ -17,6 +17,8 @@ export const ENDPOINTS = {
     tanks: '/tank',
     additives: '/additive',
     solutions: '/solution',
+    solutionHistory: '/solution-history',
+    solutionComposition: '/solution-composition',
     watering: '/watering',
     conditions: '/condition',
     drain: '/drain',
