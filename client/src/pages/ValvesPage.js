@@ -1,11 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ValvesPage.css';
-import {
-    fetchValves,
-    linkGreenhouseToValve,
-    unlinkGreenhouseFromValve,
-} from '../http/valveAPI';
-import { fetchGreenhouses } from '../http/greenhouseAPI';
+import { valvesApi, greenhousesApi } from '../http';
 
 const ValvesPage = () => {
     // Состояния для данных
@@ -39,8 +34,8 @@ const ValvesPage = () => {
         setError(null);
         try {
             const [valvesData, greenhousesData] = await Promise.all([
-                fetchValves(),
-                fetchGreenhouses(),
+                valvesApi.getAll(),
+                greenhousesApi.getAll(),
             ]);
 
             setValves(valvesData);
@@ -106,7 +101,7 @@ const ValvesPage = () => {
                     setIsSubmitting(false);
                     return;
                 }
-                await linkGreenhouseToValve(activeValveId, { blockId: id });
+                await valvesApi.linkGreenhouse(activeValveId, { blockId: id });
             } else {
                 const name = newGreenhouseName.trim();
                 if (!name) {
@@ -119,7 +114,7 @@ const ValvesPage = () => {
                     setIsSubmitting(false);
                     return;
                 }
-                await linkGreenhouseToValve(activeValveId, {
+                await valvesApi.linkGreenhouse(activeValveId, {
                     name,
                     description: newGreenhouseDescription,
                 });
@@ -142,7 +137,7 @@ const ValvesPage = () => {
     const confirmRemoveGreenhouse = async () => {
         setIsSubmitting(true);
         try {
-            await unlinkGreenhouseFromValve(activeValveId, greenhouseToRemove);
+            await valvesApi.unlinkGreenhouse(activeValveId, greenhouseToRemove);
             await loadData();
             setGreenhouseToRemove(null);
         } catch (err) {

@@ -1,4 +1,4 @@
-﻿// import React, { useState, useContext } from 'react';
+// import React, { useState, useContext } from 'react';
 // import { Link, useNavigate } from 'react-router-dom';
 // import { Context } from '../index';
 // import './LoginPage.css';
@@ -72,8 +72,8 @@
 
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login as loginRequest } from '../http/userAPI';
-import { setToken } from '../utils/authToken';
+import { authApi } from '../http';
+import { setToken, decodeToken } from '../utils/authToken';
 import { Context } from '../index';
 import './LoginPage.css';
 
@@ -95,7 +95,9 @@ const LoginPage = () => {
        e.preventDefault();
 
        try {
-           const decodedUser = await loginRequest(form.login, form.password);
+           const { token } = await authApi.login(form.login, form.password);
+           setToken(token);
+           const decodedUser = decodeToken(token);
 
            user.setUser(decodedUser);
            user.setIsAuth(true);

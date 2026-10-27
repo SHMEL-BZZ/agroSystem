@@ -1,18 +1,18 @@
-import axios from "axios";
-
-const $host = axios.create({
-    baseURL: process.env.REACT_APP_API_URL
-})
-
-const $authHost = axios.create({
-    baseURL: process.env.REACT_APP_API_URL
-})
-
-const authInterceptor = config => {
-    config.headers.authorization = `Bearer ${localStorage.getItem('token')}`
-    return config
-}
-
-$authHost.interceptors.request.use(authInterceptor)
-
-export { $host, $authHost }
+// client/src/http/index.js
+// Единая точка входа: fetch-клиент и API-модули по сущностям
+export { http, request } from './http';
+export { authApi } from './authApi';
+export { valvesApi } from './valvesApi';
+export { greenhousesApi } from './greenhousesApi';
+export { tanksApi } from './tanksApi';
+export { additivesApi } from './additivesApi';
+export {
+    solutionsApi,
+    solutionHistoryApi,
+    solutionCompositionApi,
+} from './solutionsApi';
+export { wateringApi, wateringScheduleApi } from './wateringApi';
+export { conditionsApi } from './conditionsApi';
+export { drainApi } from './drainApi';
+export { chartsApi } from './chartsApi';
+export { generatorsApi } from './generatorsApi';

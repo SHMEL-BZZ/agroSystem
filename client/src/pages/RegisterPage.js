@@ -1,6 +1,7 @@
-﻿import React, { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registration } from '../http/userAPI';
+import { authApi } from '../http';
+import { setToken, decodeToken } from '../utils/authToken';
 import { Context } from '../index';
 import './RegisterPage.css';
 
@@ -27,10 +28,13 @@ const RegisterPage = () => {
         }
 
         try {
-            const decodedUser = await
-
-
-                registration(form.login, form.email, form.password);
+            const { token } = await authApi.register({
+                login: form.login,
+                email: form.email,
+                password: form.password,
+            });
+            setToken(token);
+            const decodedUser = decodeToken(token);
 
             user.setUser(decodedUser);
             user.setIsAuth(true);
