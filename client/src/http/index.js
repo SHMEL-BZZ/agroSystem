@@ -1,5 +1,4 @@
 // client/src/http/index.js
-// Единая точка входа: fetch-клиент и API-модули по сущностям
 export { http, request } from './http';
 export { authApi } from './authApi';
 export { valvesApi } from './valvesApi';
