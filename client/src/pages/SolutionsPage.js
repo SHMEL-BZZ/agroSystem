@@ -263,40 +263,30 @@ const SolutionsPage = () => {
         }
     };
 
-    // Очистка бака (обнуление компонентов)
+    // Очистка бака (создание новой пустой истории)
     const openClearTankDialog = () => {
         if (!activeTank || activeTank.items.length === 0) return;
         setIsClearTankOpen(true);
     };
     const cancelClearTank = () => setIsClearTankOpen(false);
+
     const confirmClearTank = async () => {
         if (!activeTank) return;
 
         setIsClearing(true);
         try {
-            // 1. Создаем запись в истории раствора (фиксируем факт очистки)
-            // totalVolume = 0, так как все компоненты будут 0
-            const history = await solutionHistoryApi.create({
+            // Создаем только новую запись в истории раствора (с нулевым объемом).
+            // Сервер сам привяжет её к баку. Состав (добавки) создавать не нужно,
+            // так как бак пустой.
+            await solutionHistoryApi.create({
                 tankId: activeTankId,
                 totalVolume: 0,
             });
 
-            // 2. Для всех текущих компонентов в баке создаем записи с amount = 0
-            // (Кроме воды, если она есть, но по логике вода тоже обнуляется)
-            const payloads = activeTank.items.map((it) => ({
-                solutionId: history.id,
-                additiveId: it.kind === 'water' ? WATER_ADDITIVE_ID : it.id,
-                amount: 0,
-                unit: it.unit,
-            }));
-
-            // 3. Отправляем на сервер
-            await Promise.all(payloads.map(solutionCompositionApi.create));
-
-            // 4. Перезагружаем данные, чтобы UI обновился
+            // Перезагружаем данные, чтобы UI обновился
             await loadTanks();
 
-            setToastMessage(`Бак «${activeTank.name}» очищен (обнулен).`);
+            setToastMessage(`Бак «${activeTank.name}» успешно очищен.`);
             setIsClearTankOpen(false);
         } catch (e) {
             console.error('clearTank:', e);

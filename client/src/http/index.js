@@ -41,4 +41,4 @@ export { conditionsApi } from './conditionsApi';
 export { drainApi } from './drainApi';
 export { chartsApi } from './chartsApi';
 export { generatorsApi } from './generatorsApi';
->>>>>>> origin/client
+

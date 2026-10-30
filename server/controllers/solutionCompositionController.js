@@ -92,9 +92,9 @@ class SolutionCompositionController {
                 return next(ApiError.notFound('Состав не найден'))
             }
 
-            if (amount !== undefined && Number(amount) <= 0) {
-                return next(ApiError.badRequest('Количество должно быть больше 0'))
-            }
+            // if (amount !== undefined && Number(amount) <= 0) {
+            //     return next(ApiError.badRequest('Количество должно быть больше 0'))
+            // }
             if (unit && !VALID_UNITS.includes(unit)) {
                 return next(ApiError.badRequest('Недопустимая единица измерения'))
             }
