@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ChartsPage.css';
 import ChartRenderer from '../components/ChartRenderer';
 import { fetchChartData } from '../data/chartsData';
-import { getAvailableRange } from '../api/chartsApi';
+import { chartsApi } from '../http';
 
 const ChartsPage = () => {
     const charts = [
@@ -39,7 +39,7 @@ const ChartsPage = () => {
         let cancelled = false;
         setRangeLoading(true);
 
-        getAvailableRange()
+        chartsApi.getAvailableRange()
             .then(({ min, max }) => {
                 if (cancelled) return;
                 setAvailableRange({ min, max });

@@ -219,8 +219,33 @@ const Additive = sequelize.define('Additive', {
         defaultValue: 'г',
         field: 'ед_измерения',
         validate: {
-            isIn: [['г', 'мл', 'л']]
+            isIn: [['г', 'мл', 'л', 'кг']]
         }
+    },
+
+    category: {
+        type: DataTypes.STRING(100),
+        field: 'категория'
+    },
+    form: {
+        type: DataTypes.STRING(50),
+        field: 'форма'
+    },
+    dosePerLiter: {
+        type: DataTypes.TEXT,
+        field: 'дозировка'
+    },
+    description: {
+        type: DataTypes.TEXT,
+        field: 'описание'
+    },
+    composition: {
+        type: DataTypes.TEXT,
+        field: 'состав'
+    },
+    note: {
+        type: DataTypes.TEXT,
+        field: 'примечание'
     }
 }, {
     tableName: 'добавки',

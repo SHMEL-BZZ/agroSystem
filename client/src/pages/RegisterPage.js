@@ -1,6 +1,6 @@
-﻿import React, { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registration } from '../http/userAPI';
+import { registration } from '../http/userAPI'; // ВАЖНО: ваш импорт
 import { Context } from '../index';
 import './RegisterPage.css';
 
@@ -27,8 +27,7 @@ const RegisterPage = () => {
         }
 
         try {
-            // ВАЖНО: порядок аргументов должен совпадать с функцией registration в userAPI.js
-            // registration(login, password, email)
+            // ВАЖНО: порядок аргументов (login, password, email)
             const decodedUser = await registration(form.login, form.password, form.email);
 
             user.setUser(decodedUser);

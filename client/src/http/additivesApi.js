@@ -1,4 +1,4 @@
-// client/src/api/additivesApi.js
+// client/src/http/additivesApi.js
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
 
@@ -13,10 +13,10 @@ export const additivesApi = {
 
     remove: (id) => http.delete(`${ENDPOINTS.additives}/${id}`),
 
-    // Пополнить остаток добавки
+    // РџРѕРїРѕР»РЅРёС‚СЊ РѕСЃС‚Р°С‚РѕРє РґРѕР±Р°РІРєРё
     refill: (id, amount) =>
         http.patch(`${ENDPOINTS.additives}/${id}/refill`, { amount }),
 
-    // Все составы растворов, где использовалась добавка
+    // Р’СЃРµ СЃРѕСЃС‚Р°РІС‹ СЂР°СЃС‚РІРѕСЂРѕРІ, РіРґРµ РёСЃРїРѕР»СЊР·РѕРІР°Р»Р°СЃСЊ РґРѕР±Р°РІРєР°
     getUsages: (id) => http.get(`${ENDPOINTS.additives}/${id}/usages`),
 };

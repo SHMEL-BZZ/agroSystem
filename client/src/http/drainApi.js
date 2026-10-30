@@ -1,4 +1,4 @@
-// client/src/api/drainApi.js
+// client/src/http/drainApi.js
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
 
@@ -13,17 +13,17 @@ export const drainApi = {
 
     remove: (id) => http.delete(`${ENDPOINTS.drain}/${id}`),
 
-    // Äðåíàæ ïî êîíêðåòíîìó ïîëèâó
+    // Ð”Ñ€ÐµÐ½Ð°Ð¶ Ð¿Ð¾ ÐºÐ¾Ð½ÐºÑ€ÐµÑ‚Ð½Ð¾Ð¼Ñƒ Ð¿Ð¾Ð»Ð¸Ð²Ñƒ
     getByWatering: (wateringId) =>
         http.get(`${ENDPOINTS.drain}/watering/${wateringId}`),
 
-    // Äðåíàæ çà ïåðèîä
+    // Ð”Ñ€ÐµÐ½Ð°Ð¶ Ð·Ð° Ð¿ÐµÑ€Ð¸Ð¾Ð´
     getByDateRange: (from, to) =>
         http.get(`${ENDPOINTS.drain}/range`, {
             params: { from, to },
         }),
 
-    // Ñãåíåðèðîâàòü äàííûå äðåíàæà (Python-ñêðèïò)
+    // Ð¡Ð³ÐµÐ½ÐµÑ€Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ Ð´Ð°Ð½Ð½Ñ‹Ðµ Ð´Ñ€ÐµÐ½Ð°Ð¶Ð° (Python-ÑÐºÑ€Ð¸Ð¿Ñ‚)
     generate: (wateringId) =>
         http.post(`${ENDPOINTS.drain}/generate`, { wateringId }),
 };

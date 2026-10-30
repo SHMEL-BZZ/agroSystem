@@ -1,8 +1,46 @@
-const { SolutionHistory, Tank } = require('../models/models')
+const { SolutionHistory, Tank, SolutionComposition, Additive} = require('../models/models')
 const ApiError = require('../error/ApiError')
 
 // исотрия раствора контроллер
 class SolutionHistoryController {
+
+    async clearTank(req, res) {
+        try {
+            const tankId = req.params.id;
+
+            const newHistory = await ИсторияРаствора.create({
+                id_бака: tankId,
+                общий_объем: 0,
+            });
+
+            const allAdditives = await Добавки.findAll();
+
+            const compositions = allAdditives.map(additive => ({
+                id_раствора: newHistory.id_раствора,
+                id_добавки: additive.id_добавки,
+                количество_добавки: 0,
+                ед_измерения: additive.ед_измерения
+            }));
+
+            compositions.push({
+                id_раствора: newHistory.id_раствора,
+                id_добавки: 10,
+                количество_добавки: 0,
+                ед_измерения: 'л'
+            });
+
+            await СоставРаствора.bulkCreate(compositions);
+
+            return res.json({
+                message: 'Бак успешно очищен',
+                historyId: newHistory.id_раствора
+            });
+
+        } catch (e) {
+            console.error('Ошибка при очистке бака:', e);
+            return res.status(500).json({ message: 'Ошибка при очистке бака' });
+        }
+    }
 
     // POST /api/solution-history
     async create(req, res, next) {
@@ -58,7 +96,14 @@ class SolutionHistoryController {
                 limit: Number(limit),
                 offset: Number(offset),
                 order: [['date', 'DESC']],
-                include: [{ model: Tank, as: 'tank' }]
+                include: [
+                    { model: Tank, as: 'tank' },
+                    {
+                        model: SolutionComposition,
+                        as: 'composition',
+                        include: [{ model: Additive, as: 'additive' }]
+                    }
+                ]
             })
             return res.json(solutions)
 

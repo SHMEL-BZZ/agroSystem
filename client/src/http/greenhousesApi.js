@@ -1,4 +1,4 @@
-// client/src/api/greenhousesApi.js
+// client/src/http/greenhousesApi.js
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
 
@@ -13,20 +13,20 @@ export const greenhousesApi = {
 
     remove: (id) => http.delete(`${ENDPOINTS.greenhouses}/${id}`),
 
-    // Теплицы, привязанные к конкретному клапану
+    // РўРµРїР»РёС†С‹, РїСЂРёРІСЏР·Р°РЅРЅС‹Рµ Рє РєРѕРЅРєСЂРµС‚РЅРѕРјСѓ РєР»Р°РїР°РЅСѓ
     getByValve: (valveId) =>
         http.get(`${ENDPOINTS.greenhouses}/valve/${valveId}`),
 
-    // Свободные теплицы (не привязанные ни к одному клапану)
+    // РЎРІРѕР±РѕРґРЅС‹Рµ С‚РµРїР»РёС†С‹ (РЅРµ РїСЂРёРІСЏР·Р°РЅРЅС‹Рµ РЅРё Рє РѕРґРЅРѕРјСѓ РєР»Р°РїР°РЅСѓ)
     getFree: () => http.get(`${ENDPOINTS.greenhouses}/free`),
 
-    // Привязать теплицу к клапану
+    // РџСЂРёРІСЏР·Р°С‚СЊ С‚РµРїР»РёС†Сѓ Рє РєР»Р°РїР°РЅСѓ
     attachToValve: (greenhouseId, valveId) =>
         http.post(`${ENDPOINTS.greenhouses}/${greenhouseId}/valve`, {
             valveId,
         }),
 
-    // Отвязать теплицу от клапана
+    // РћС‚РІСЏР·Р°С‚СЊ С‚РµРїР»РёС†Сѓ РѕС‚ РєР»Р°РїР°РЅР°
     detachFromValve: (greenhouseId) =>
         http.delete(`${ENDPOINTS.greenhouses}/${greenhouseId}/valve`),
 };

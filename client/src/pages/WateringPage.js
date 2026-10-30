@@ -1,9 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './WateringPage.css';
 import Toast from '../components/Toast';
-import { valvesApi } from '../api/valvesApi';
-import { tanksApi } from '../api/tanksApi';
-import { wateringScheduleApi } from '../api/wateringScheduleApi';
+import { valvesApi, tanksApi, wateringScheduleApi } from '../http';
 
 const WateringPage = () => {
     const [step, setStep] = useState('setup');

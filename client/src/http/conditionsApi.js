@@ -1,4 +1,4 @@
-// client/src/api/conditionsApi.js
+// client/src/http/conditionsApi.js
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
 
@@ -13,18 +13,18 @@ export const conditionsApi = {
 
     remove: (id) => http.delete(`${ENDPOINTS.conditions}/${id}`),
 
-    // Óñëîâèÿ ïî êëàïàíó
+    // Ð£ÑÐ»Ð¾Ð²Ð¸Ñ Ð¿Ð¾ ÐºÐ»Ð°Ð¿Ð°Ð½Ñƒ
     getByValve: (valveId) =>
         http.get(`${ENDPOINTS.conditions}/valve/${valveId}`),
 
-    // Óñëîâèÿ ïî äàòå
+    // Ð£ÑÐ»Ð¾Ð²Ð¸Ñ Ð¿Ð¾ Ð´Ð°Ñ‚Ðµ
     getByDate: (date) => http.get(`${ENDPOINTS.conditions}/date/${date}`),
 
-    // Óñëîâèÿ ïî êëàïàíó è äàòå
+    // Ð£ÑÐ»Ð¾Ð²Ð¸Ñ Ð¿Ð¾ ÐºÐ»Ð°Ð¿Ð°Ð½Ñƒ Ð¸ Ð´Ð°Ñ‚Ðµ
     getByValveAndDate: (valveId, date) =>
         http.get(`${ENDPOINTS.conditions}/valve/${valveId}/date/${date}`),
 
-    // Ñãåíåðèðîâàòü óñëîâèÿ íà äàòó (Python-ñêðèïò)
+    // Ð¡Ð³ÐµÐ½ÐµÑ€Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ ÑƒÑÐ»Ð¾Ð²Ð¸Ñ Ð½Ð° Ð´Ð°Ñ‚Ñƒ (Python-ÑÐºÑ€Ð¸Ð¿Ñ‚)
     generate: (valveId, date, season) =>
         http.post(`${ENDPOINTS.conditions}/generate`, {
             valveId,

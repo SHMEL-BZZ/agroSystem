@@ -1,4 +1,4 @@
-﻿import { getChartData } from '../api/chartsApi';
+import { chartsApi } from '../http';
 
 export const chartConfigs = {
     drainage: {
@@ -117,7 +117,7 @@ export async function fetchChartData(chartId, filters) {
     // ─── Запрос к серверу ───
     let rawData = [];
     try {
-        rawData = await getChartData(chartId, { dateFrom, dateTo });
+        rawData = await chartsApi.getData(chartId, { dateFrom, dateTo });
         if (!Array.isArray(rawData)) rawData = [];
     } catch (e) {
         console.error('Ошибка загрузки данных графика:', e);

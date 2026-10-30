@@ -1,4 +1,4 @@
-// client/src/api/tanksApi.js
+// client/src/http/tanksApi.js
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
 
@@ -13,16 +13,17 @@ export const tanksApi = {
 
     remove: (id) => http.delete(`${ENDPOINTS.tanks}/${id}`),
 
-    // Áàêè ïî íàçíà÷åíèþ (÷èñòàÿ âîäà / ïèòàòåëüíûé ðàñòâîð / äðåíàæ)
+    // Ð‘Ð°ÐºÐ¸ Ð¿Ð¾ Ð½Ð°Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸ÑŽ (Ñ‡Ð¸ÑÑ‚Ð°Ñ Ð²Ð¾Ð´Ð° / Ð¿Ð¸Ñ‚Ð°Ñ‚ÐµÐ»ÑŒÐ½Ñ‹Ð¹ Ñ€Ð°ÑÑ‚Ð²Ð¾Ñ€ / Ð´Ñ€ÐµÐ½Ð°Ð¶)
     getByPurpose: (purposeId) =>
         http.get(`${ENDPOINTS.tanks}/purpose/${purposeId}`),
 
-    // Èçìåíèòü îáú¸ì áàêà
+    // Ð˜Ð·Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ Ð¾Ð±ÑŠÑ‘Ð¼ Ð±Ð°ÐºÐ°
     setVolume: (id, volume) =>
         http.patch(`${ENDPOINTS.tanks}/${id}/volume`, { volume }),
 
-    // Èñòîðèÿ ðàñòâîðîâ äëÿ áàêà
+    // Ð˜ÑÑ‚Ð¾Ñ€Ð¸Ñ Ñ€Ð°ÑÑ‚Ð²Ð¾Ñ€Ð¾Ð² Ð´Ð»Ñ Ð±Ð°ÐºÐ°
     getSolutions: (id) => http.get(`${ENDPOINTS.tanks}/${id}/solutions`),
 
-    getAllWithContents: () => http.get('/tank/with-contents'),
+    // Ð‘Ð°ÐºÐ¸ Ð²Ð¼ÐµÑÑ‚Ðµ Ñ Ñ‚ÐµÐºÑƒÑ‰Ð¸Ð¼ ÑÐ¾Ð´ÐµÑ€Ð¶Ð¸Ð¼Ñ‹Ð¼
+    getAllWithContents: () => http.get(`${ENDPOINTS.tanks}/with-contents`),
 };

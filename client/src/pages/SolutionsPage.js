@@ -1,4 +1,5 @@
-﻿import Toast from '../components/Toast';
+// SolutionsPage.js
+import Toast from '../components/Toast';
 import React, { useState, useRef, useEffect } from 'react';
 import './SolutionsPage.css';
 import SolutionsInfo from '../components/SolutionsInfo';
@@ -9,9 +10,119 @@ import {
     formatDoseRange,
     getUnitForForm,
 } from '../utils/dosing';
+import { tanksApi, solutionHistoryApi, solutionCompositionApi } from '../http';
 
+// Константы
+const WATER_ADDITIVE_ID = 10;
+const WATER_NAME = 'Вода';
+
+const MAX_ADDITIVES = 9;              // максимум добавок в одном замесе
+const MAX_ADDITIVE_AMOUNT = 2000;     // физический потолок: 2000 г / 2000 мл
+const SOFT_LIMIT_MULTIPLIER = 2;      // допустимое превышение рекомендуемой дозы
+const SOLID_GRAM_TO_LITER = 0.001;    // 1 г твёрдой ≈ 1 мл ≈ 0.001 л
+const MAX_TANK_VOLUME = 50000;        // физический предел объёма бака
+
+// Утилиты
+
+// Агрегирует историю замесов бака в текущее содержимое
+function aggregateTankState(solutions) {
+    let usedLiters = 0;
+    const map = new Map();
+
+    for (const sol of solutions) {
+        usedLiters += Number(sol.totalVolume) || 0;
+
+        for (const comp of sol.composition || []) {
+            const isWater = comp.additiveId === WATER_ADDITIVE_ID;
+            const key = isWater ? 'water' : comp.additiveId;
+
+            const cur = map.get(key) || {
+                kind: isWater ? 'water' : 'additive',
+                id: isWater ? undefined : comp.additiveId,
+                name: isWater
+                    ? WATER_NAME
+                    : (comp.additive?.name || `Добавка ${comp.additiveId}`),
+                amount: 0,
+                unit: comp.unit,
+                form: comp.additive?.unit === 'л' ? 'liquid' : 'solid',
+            };
+            cur.amount += Number(comp.amount) || 0;
+            map.set(key, cur);
+        }
+    }
+
+    const items = [...map.values()].map((it) => ({
+        ...it,
+        amount: Math.round(it.amount * 100) / 100,
+    }));
+
+    return {
+        usedLiters: Math.round(usedLiters * 100) / 100,
+        items,
+    };
+}
+
+function sanitizeTankVolume(value) {
+    if (value === '' || value === null || value === undefined) return '';
+
+    let str = String(value).replace(/[^0-9.]/g, '').replace(/^\.+/, '');
+
+    const firstDot = str.indexOf('.');
+    if (firstDot !== -1) {
+        str =
+            str.slice(0, firstDot + 1) +
+            str.slice(firstDot + 1).replace(/\./g, '');
+    }
+
+    if (str !== '') {
+        let num = parseFloat(str);
+        if (isNaN(num)) num = 0;
+        if (num < 0) num = 0;
+        if (num > MAX_TANK_VOLUME) num = MAX_TANK_VOLUME;
+        str = String(num);
+    }
+
+    return str;
+}
+
+function sanitizeAdditivesCount(value) {
+    if (value === '' || value === null || value === undefined) return '';
+
+    let str = String(value).replace(/\D/g, '');
+    if (str === '') return '';
+
+    let num = parseInt(str, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > MAX_ADDITIVES) num = MAX_ADDITIVES;
+
+    return String(num);
+}
+
+function sanitizeAdditiveVolume(value) {
+    if (value === '' || value === null || value === undefined) return '';
+
+    let str = String(value).replace(/[^0-9.]/g, '');
+    const firstDot = str.indexOf('.');
+    if (firstDot !== -1) {
+        str =
+            str.slice(0, firstDot + 1) +
+            str.slice(firstDot + 1).replace(/\./g, '');
+    }
+    str = str.replace(/^\.+/, '');
+
+    if (str === '') return '';
+
+    let num = parseFloat(str);
+    if (isNaN(num)) num = 0;
+    if (num < 0) num = 0;
+    if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
+
+    return String(num);
+}
+
+
+// Компонент
 const SolutionsPage = () => {
-
     const [activeTab, setActiveTab] = useState('mix');
     const [isHintOpen, setIsHintOpen] = useState(false);
     const [tankToDelete, setTankToDelete] = useState(null);
@@ -19,20 +130,26 @@ const SolutionsPage = () => {
     const [isAddTankOpen, setIsAddTankOpen] = useState(false);
     const [newTankVolume, setNewTankVolume] = useState('2000');
 
-    const [tanks, setTanks] = useState([
-        { id: 1, name: 'Бак 1', volume: 2000, usedLiters: 0, items: [] },
-        { id: 2, name: 'Бак 2', volume: 2000, usedLiters: 0, items: [] },
-        { id: 3, name: 'Бак 3', volume: 2000, usedLiters: 0, items: [] },
-    ]);
+    // Состояние для модалки очистки бака
+    const [isClearTankOpen, setIsClearTankOpen] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+
+    const [tanks, setTanks] = useState([]);
+    const [activeTankId, setActiveTankId] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const activeTank = tanks.find((t) => t.id === activeTankId);
 
     const [toastMessage, setToastMessage] = useState('');
 
-    const [activeTankId, setActiveTankId] = useState(tanks[0].id);
-    const activeTank = tanks.find((t) => t.id === activeTankId);
-
-    const fillPercent = activeTank && activeTank.volume > 0
-        ? Math.min(Math.round((activeTank.usedLiters / activeTank.volume) * 100), 100)
-        : 0;
+    const fillPercent =
+        activeTank && activeTank.volume > 0
+            ? Math.min(
+                Math.round((activeTank.usedLiters / activeTank.volume) * 100),
+                100
+            )
+            : 0;
 
     const freeLiters = activeTank
         ? Math.max(activeTank.volume - activeTank.usedLiters, 0)
@@ -42,81 +159,51 @@ const SolutionsPage = () => {
     const [additivesCount, setAdditivesCount] = useState('');
     const [additives, setAdditives] = useState([]);
 
-    // Максимальное количество добавок в одном замесе
-    const MAX_ADDITIVES = 9;
-    const MAX_ADDITIVE_AMOUNT = 2000; // физический потолок: 2000 г / 2000 мл на замес
-    const SOFT_LIMIT_MULTIPLIER = 2;  // допустимое превышение рекомендуемой дозы
+    // Загрузка баков с сервера
+    const loadTanks = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const tanksData = await tanksApi.getAll();
 
-    // 1 г твёрдой добавки условно занимает 1 мл = 0.001 л объёма бака
-    const SOLID_GRAM_TO_LITER = 0.001;
+            const enriched = await Promise.all(
+                tanksData.map(async (t) => {
+                    const solutions = await solutionHistoryApi.getByTank(t.id);
+                    const { usedLiters, items } = aggregateTankState(solutions);
+                    return {
+                        id: t.id,
+                        name: `Бак ${t.id}`,
+                        volume: Number(t.volume) || 0,
+                        purposeId: t.purposeId,
+                        usedLiters,
+                        items,
+                    };
+                })
+            );
 
-    // Максимальный объём бака (физический предел ввода)
-    const MAX_TANK_VOLUME = 50000;
+            const renamed = enriched.map((t, i) => ({
+                ...t,
+                name: `Бак ${i + 1}`,
+            }));
 
-    // Санитайзер для объёма бака: только цифры и максимум одна точка.
-    function sanitizeTankVolume(value) {
-        if (value === '' || value === null || value === undefined) return '';
-
-        let str = String(value);
-
-        str = str.replace(/[^0-9.]/g, '');
-        str = str.replace(/^\.+/, '');
-
-        const firstDot = str.indexOf('.');
-        if (firstDot !== -1) {
-            str =
-                str.slice(0, firstDot + 1) +
-                str.slice(firstDot + 1).replace(/\./g, '');
+            setTanks(renamed);
+            setActiveTankId((prev) => {
+                if (prev && renamed.some((t) => t.id === prev)) return prev;
+                return renamed[0]?.id ?? null;
+            });
+        } catch (e) {
+            console.error('loadTanks:', e);
+            setError('Не удалось загрузить баки');
+        } finally {
+            setLoading(false);
         }
+    };
 
-        if (str !== '') {
-            let num = parseFloat(str);
-            if (isNaN(num)) num = 0;
-            if (num < 0) num = 0;
-            if (num > MAX_TANK_VOLUME) num = MAX_TANK_VOLUME;
-            str = String(num);
-        }
+    useEffect(() => {
+        loadTanks();
+    }, []);
 
-        return str;
-    }
-
-    // Санитайзер для количества добавок: только цифры, максимум MAX_ADDITIVES
-    function sanitizeAdditivesCount(value) {
-        if (value === '' || value === null || value === undefined) return '';
-
-        let str = String(value).replace(/\D/g, '');
-        if (str === '') return '';
-
-        let num = parseInt(str, 10);
-        if (isNaN(num) || num < 0) num = 0;
-        if (num > MAX_ADDITIVES) num = MAX_ADDITIVES;
-
-        return String(num);
-    }
-
-    // Санитайзер для объёма добавки: только цифры и максимум одна точка
-    function sanitizeAdditiveVolume(value) {
-        if (value === '' || value === null || value === undefined) return '';
-
-        let str = String(value).replace(/[^0-9.]/g, '');
-        const firstDot = str.indexOf('.');
-        if (firstDot !== -1) {
-            str =
-                str.slice(0, firstDot + 1) +
-                str.slice(firstDot + 1).replace(/\./g, '');
-        }
-        str = str.replace(/^\.+/, '');
-
-        if (str === '') return '';
-
-        let num = parseFloat(str);
-        if (isNaN(num)) num = 0;
-        if (num < 0) num = 0;
-        if (num > MAX_ADDITIVE_AMOUNT) num = MAX_ADDITIVE_AMOUNT;
-
-        return String(num);
-    }
-
+    // Прокрутка списка баков
     const tanksListRef = useRef(null);
     const scrollTanks = (direction) => {
         if (tanksListRef.current) {
@@ -128,25 +215,25 @@ const SolutionsPage = () => {
         }
     };
 
-    // Удаление бака 
+    // Удаление бака
     const askDeleteTank = (id) => {
         if (tanks.length <= 2) return;
         setTankToDelete(id);
     };
     const cancelDeleteTank = () => setTankToDelete(null);
 
-    const confirmDeleteTank = () => {
-        setTanks((prev) => {
-            const filtered = prev.filter((t) => t.id !== tankToDelete);
-            if (tankToDelete === activeTankId && filtered.length > 0) {
-                setActiveTankId(filtered[0].id);
-            }
-            return filtered.map((t, i) => ({ ...t, name: `Бак ${i + 1}` }));
-        });
-        setTankToDelete(null);
+    const confirmDeleteTank = async () => {
+        try {
+            await tanksApi.remove(tankToDelete);
+            setTankToDelete(null);
+            await loadTanks();
+        } catch (e) {
+            console.error('deleteTank:', e);
+            alert(e.response?.data?.message || 'Ошибка удаления бака');
+        }
     };
 
-    // Создание бака 
+    // Создание бака
     const openAddTankDialog = () => {
         setNewTankVolume('2000');
         setIsAddTankOpen(true);
@@ -155,7 +242,7 @@ const SolutionsPage = () => {
         setIsAddTankOpen(false);
         setNewTankVolume('2000');
     };
-    const confirmAddTank = () => {
+    const confirmAddTank = async () => {
         const sanitized = sanitizeTankVolume(newTankVolume);
         const volume = parseFloat(sanitized);
 
@@ -164,32 +251,86 @@ const SolutionsPage = () => {
             return;
         }
 
-        const newId = tanks.length ? Math.max(...tanks.map((t) => t.id)) + 1 : 1;
-        const newTank = {
-            id: newId,
-            name: `Бак ${tanks.length + 1}`,
-            volume,
-            usedLiters: 0,
-            items: [],
-        };
-        setTanks([...tanks, newTank]);
-        setActiveTankId(newId);
-        setIsAddTankOpen(false);
-        setNewTankVolume('2000');
+        try {
+            const created = await tanksApi.create({ volume });
+            setIsAddTankOpen(false);
+            setNewTankVolume('2000');
+            await loadTanks();
+            if (created?.id) setActiveTankId(created.id);
+        } catch (e) {
+            console.error('createTank:', e);
+            alert(e.response?.data?.message || 'Ошибка создания бака');
+        }
     };
+
+    // Очистка бака (обнуление компонентов)
+    const openClearTankDialog = () => {
+        if (!activeTank || activeTank.items.length === 0) return;
+        setIsClearTankOpen(true);
+    };
+    const cancelClearTank = () => setIsClearTankOpen(false);
+    const confirmClearTank = async () => {
+        if (!activeTank) return;
+
+        setIsClearing(true);
+        try {
+            // 1. Создаем запись в истории раствора (фиксируем факт очистки)
+            // totalVolume = 0, так как все компоненты будут 0
+            const history = await solutionHistoryApi.create({
+                tankId: activeTankId,
+                totalVolume: 0,
+            });
+
+            // 2. Для всех текущих компонентов в баке создаем записи с amount = 0
+            // (Кроме воды, если она есть, но по логике вода тоже обнуляется)
+            const payloads = activeTank.items.map((it) => ({
+                solutionId: history.id,
+                additiveId: it.kind === 'water' ? WATER_ADDITIVE_ID : it.id,
+                amount: 0,
+                unit: it.unit,
+            }));
+
+            // 3. Отправляем на сервер
+            await Promise.all(payloads.map(solutionCompositionApi.create));
+
+            // 4. Перезагружаем данные, чтобы UI обновился
+            await loadTanks();
+
+            setToastMessage(`Бак «${activeTank.name}» очищен (обнулен).`);
+            setIsClearTankOpen(false);
+        } catch (e) {
+            console.error('clearTank:', e);
+            alert(e.response?.data?.message || 'Ошибка очистки бака');
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
+    // Смена объёма
+
+    const volumeTimerRef = useRef(null);
 
     const handleTankVolumeChange = (value) => {
         const sanitized = sanitizeTankVolume(value);
+        const volume = sanitized === '' ? 0 : parseFloat(sanitized);
+
         setTanks((prev) =>
             prev.map((t) =>
-                t.id === activeTankId
-                    ? { ...t, volume: sanitized === '' ? 0 : parseFloat(sanitized) }
-                    : t
+                t.id === activeTankId ? { ...t, volume } : t
             )
         );
+
+        if (volumeTimerRef.current) clearTimeout(volumeTimerRef.current);
+        if (volume > 0) {
+            volumeTimerRef.current = setTimeout(() => {
+                tanksApi.update(activeTankId, { volume }).catch((err) =>
+                    console.error('updateTank:', err)
+                );
+            }, 500);
+        }
     };
 
-    // Количество добавок 
+    // Добавки
     const handleAdditivesCountChange = (value) => {
         const sanitized = sanitizeAdditivesCount(value);
 
@@ -215,7 +356,7 @@ const SolutionsPage = () => {
         });
     };
 
-    // База для дозировки 
+    // База для дозировки
     const getDoseBase = () => {
         if (activeTank) {
             const waterItem = activeTank.items.find((it) => it.kind === 'water');
@@ -228,33 +369,33 @@ const SolutionsPage = () => {
         return '';
     };
 
-    // Изменение строки добавки 
+    // Изменение строки добавки
     const updateAdditive = (index, field, value) => {
         setAdditives((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
                 const next = { ...item, [field]: value };
 
-                // Ввод объёма 
                 if (field === 'volume') {
                     next.autoFilled = false;
                     next.volume = sanitizeAdditiveVolume(value);
                 }
 
-                // Смена добавки 
                 if (field === 'additiveId') {
-                    const additive = solutionAdditives.find((s) => s.id === value);
+                    const additive = solutionAdditives.find(
+                        (s) => s.id === value
+                    );
                     const base = getDoseBase();
-                    const dose = additive && base
-                        ? calcDose(additive.dosePerLiter, base, additive.form)
-                        : null;
+                    const dose =
+                        additive && base
+                            ? calcDose(additive.dosePerLiter, base, additive.form)
+                            : null;
 
                     if (dose) {
                         const mid = (dose.min + dose.max) / 2;
                         let rounded = Math.round(mid * 100) / 100;
-
-                        if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
-
+                        if (rounded > MAX_ADDITIVE_AMOUNT)
+                            rounded = MAX_ADDITIVE_AMOUNT;
                         next.volume = String(rounded);
                         next.autoFilled = true;
                     } else {
@@ -268,7 +409,7 @@ const SolutionsPage = () => {
         );
     };
 
-    // Изменение воды 
+    // Вода
     const handleWaterChange = (value) => {
         let str = String(value).replace(/[^0-9.]/g, '');
         const firstDot = str.indexOf('.');
@@ -283,10 +424,8 @@ const SolutionsPage = () => {
             let num = parseFloat(str);
             if (isNaN(num)) num = 0;
             if (num < 0) num = 0;
-
             const maxFree = freeLiters;
             if (num > maxFree) num = maxFree;
-
             str = String(num);
         }
 
@@ -295,7 +434,9 @@ const SolutionsPage = () => {
         setAdditives((prev) =>
             prev.map((item) => {
                 if (!item.additiveId) return item;
-                const additive = solutionAdditives.find((s) => s.id === item.additiveId);
+                const additive = solutionAdditives.find(
+                    (s) => s.id === item.additiveId
+                );
                 if (!additive) return item;
                 if (!item.autoFilled && item.volume) return item;
 
@@ -309,16 +450,12 @@ const SolutionsPage = () => {
                 let rounded = Math.round(mid * 100) / 100;
                 if (rounded > MAX_ADDITIVE_AMOUNT) rounded = MAX_ADDITIVE_AMOUNT;
 
-                return {
-                    ...item,
-                    volume: String(rounded),
-                    autoFilled: true,
-                };
+                return { ...item, volume: String(rounded), autoFilled: true };
             })
         );
     };
 
-    // Пересчёт доз при смене активного бака 
+    // Пересчёт доз при смене активного бака
     useEffect(() => {
         const base = getDoseBase();
         if (!base) return;
@@ -327,59 +464,67 @@ const SolutionsPage = () => {
             let changed = false;
             const next = prev.map((item) => {
                 if (!item.additiveId) return item;
-                const additive = solutionAdditives.find((s) => s.id === item.additiveId);
+                const additive = solutionAdditives.find(
+                    (s) => s.id === item.additiveId
+                );
                 if (!additive) return item;
                 if (!item.autoFilled && item.volume) return item;
 
                 const dose = calcDose(additive.dosePerLiter, base, additive.form);
                 if (!dose) return item;
+
                 const mid = (dose.min + dose.max) / 2;
                 const rounded = String(Math.round(mid * 100) / 100);
                 if (rounded === item.volume) return item;
+
                 changed = true;
                 return { ...item, volume: rounded, autoFilled: true };
             });
             return changed ? next : prev;
         });
-
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTankId]);
 
-    // Предупреждение: добавка уже есть в баке 
-    const alreadyInTankWarnings = additives.map((row) => {
-        if (!row.additiveId) return null;
-        const additive = solutionAdditives.find((s) => s.id === row.additiveId);
-        if (!additive) return null;
 
-        const existing = activeTank.items.find(
-            (it) => it.kind === 'additive' && it.id === additive.id
-        );
-        if (!existing) return null;
+    // Предупреждения
 
-        return {
-            additiveName: additive.name,
-            existingAmount: existing.amount,
-            existingUnit: existing.unit,
-        };
-    }).filter(Boolean);
+    const alreadyInTankWarnings = additives
+        .map((row) => {
+            if (!row.additiveId) return null;
+            const additive = solutionAdditives.find(
+                (s) => s.id === row.additiveId
+            );
+            if (!additive) return null;
 
-    // pendingLiters: вода + жидкие добавки (мл → л) + твёрдые добавки (1 г ≈ 1 мл ≈ 0.001 л)
+            const existing = activeTank?.items.find(
+                (it) => it.kind === 'additive' && it.id === additive.id
+            );
+            if (!existing) return null;
+
+            return {
+                additiveName: additive.name,
+                existingAmount: existing.amount,
+                existingUnit: existing.unit,
+            };
+        })
+        .filter(Boolean);
+
     const pendingLiters = (() => {
         let sum = 0;
         const water = parseFloat(waterLiters);
         if (!isNaN(water) && water > 0) sum += water;
 
         additives.forEach((row) => {
-            const additive = solutionAdditives.find((s) => s.id === row.additiveId);
+            const additive = solutionAdditives.find(
+                (s) => s.id === row.additiveId
+            );
             if (!additive || !row.volume) return;
 
             const v = parseFloat(row.volume);
             if (isNaN(v) || v <= 0) return;
 
-            if (additive.form === 'liquid') {
-                sum += v / 1000;
-            } else if (additive.form === 'solid') {
-                sum += v * SOLID_GRAM_TO_LITER;
-            }
+            if (additive.form === 'liquid') sum += v / 1000;
+            else if (additive.form === 'solid') sum += v * SOLID_GRAM_TO_LITER;
         });
         return sum;
     })();
@@ -387,7 +532,9 @@ const SolutionsPage = () => {
     const pendingSolidGrams = (() => {
         let sum = 0;
         additives.forEach((row) => {
-            const additive = solutionAdditives.find((s) => s.id === row.additiveId);
+            const additive = solutionAdditives.find(
+                (s) => s.id === row.additiveId
+            );
             if (additive && additive.form === 'solid' && row.volume) {
                 const v = parseFloat(row.volume);
                 if (!isNaN(v) && v > 0) sum += v;
@@ -396,20 +543,22 @@ const SolutionsPage = () => {
         return sum;
     })();
 
-    // Остаток места в баке после добавления всех компонентов
     const remainingAfterPending = Math.max(0, freeLiters - pendingLiters);
 
     const exceedsTank = activeTank && pendingLiters > freeLiters;
     const enteredWater = parseFloat(waterLiters);
-    const waterOverflow =
-        !isNaN(enteredWater) && enteredWater > freeLiters;
+    const waterOverflow = !isNaN(enteredWater) && enteredWater > freeLiters;
 
-    // Совместимость 
+
+    // Совместимость
+
     const tankAdditiveIds = activeTank
         ? activeTank.items.filter((it) => it.kind === 'additive').map((it) => it.id)
         : [];
 
-    const selectedIds = additives.map((a) => a.additiveId).filter(Boolean);
+    const selectedIds = additives
+        .map((a) => a.additiveId)
+        .filter((id) => id && id !== WATER_ADDITIVE_ID);
 
     const violationsAmongSelected = checkCompatibility(selectedIds);
 
@@ -420,11 +569,17 @@ const SolutionsPage = () => {
         rules.forEach((rule) => {
             if (rule.ids.includes(newId)) {
                 const conflicting = rule.ids.filter(
-                    (id) => id !== newId && tankAdditiveIds.includes(id)
+                    (id) =>
+                        id !== newId &&
+                        id !== WATER_ADDITIVE_ID &&
+                        tankAdditiveIds.includes(id)
                 );
                 if (conflicting.length > 0) {
                     const conflictingName = conflicting
-                        .map((id) => solutionAdditives.find((s) => s.id === id)?.name)
+                        .map(
+                            (id) =>
+                                solutionAdditives.find((s) => s.id === id)?.name
+                        )
                         .filter(Boolean)
                         .join(', ');
                     if (!violationsWithTank.some((v) => v.reason === rule.reason)) {
@@ -443,48 +598,54 @@ const SolutionsPage = () => {
         ...violationsWithTank.map((v) => ({ ...v, scope: 'tank' })),
     ];
 
-    // Проверка дозировок 
-    const doseWarnings = additives.map((row) => {
-        if (!row.additiveId || !row.volume) return null;
-        const additive = solutionAdditives.find((s) => s.id === row.additiveId);
-        if (!additive) return null;
+    // ── один блок doseWarnings, без «хвоста» копипаста ──
+    const doseWarnings = additives
+        .map((row) => {
+            if (!row.additiveId || !row.volume) return null;
+            const additive = solutionAdditives.find(
+                (s) => s.id === row.additiveId
+            );
+            if (!additive) return null;
 
-        const base = getDoseBase();
-        if (!base) return null;
+            const base = getDoseBase();
+            if (!base) return null;
 
-        const check = validateDose(
-            additive.dosePerLiter,
-            base,
-            row.volume,
-            additive.form
-        );
-        if (check.status === 'ok' || check.status === 'unknown') return null;
+            const check = validateDose(
+                additive.dosePerLiter,
+                base,
+                row.volume,
+                additive.form
+            );
+            if (check.status === 'ok' || check.status === 'unknown') return null;
 
-        const vol = parseFloat(row.volume) || 0;
-        const expectedMax = check.expected?.max || 0;
-        const isStrongOver =
-            check.status === 'above' &&
-            expectedMax > 0 &&
-            vol > expectedMax * SOFT_LIMIT_MULTIPLIER;
+            const vol = parseFloat(row.volume) || 0;
+            const expectedMax = check.expected?.max || 0;
+            const isStrongOver =
+                check.status === 'above' &&
+                expectedMax > 0 &&
+                vol > expectedMax * SOFT_LIMIT_MULTIPLIER;
 
-        return {
-            additiveName: additive.name,
-            status: check.status,
-            expected: check.expected,
-            isStrongOver,
-        };
-    }).filter(Boolean);
+            return {
+                additiveName: additive.name,
+                status: check.status,
+                expected: check.expected,
+                isStrongOver,
+            };
+        })
+        .filter(Boolean);
 
     const canMix = allViolations.length === 0 && !exceedsTank;
 
-    // Замешать
-    const handleMix = () => {
+
+    // Замешать — сохранение в БД
+
+    const handleMix = async () => {
         if (!activeTank) return;
 
         if (exceedsTank) {
             alert(
-                `Превышен объём бака. Свободно ${freeLiters.toFixed(2)} л, `
-                + `а вы пытаетесь добавить ${pendingLiters.toFixed(2)} л.`
+                `Превышен объём бака. Свободно ${freeLiters.toFixed(2)} л, ` +
+                `а вы пытаетесь добавить ${pendingLiters.toFixed(2)} л.`
             );
             return;
         }
@@ -493,90 +654,80 @@ const SolutionsPage = () => {
             return;
         }
 
-        const newItems = [];
-        let addedLiters = 0;
+        const water = parseFloat(waterLiters) || 0;
 
-        const water = parseFloat(waterLiters);
-        if (!isNaN(water) && water > 0) {
-            newItems.push({
-                kind: 'water',
-                name: 'Вода',
-                amount: water,
-                unit: 'л',
-            });
-            addedLiters += water;
-        }
-
+        const comps = [];
         additives.forEach((row) => {
-            const additive = solutionAdditives.find((s) => s.id === row.additiveId);
+            const additive = solutionAdditives.find(
+                (s) => s.id === row.additiveId
+            );
             if (!additive) return;
             const v = parseFloat(row.volume);
             if (isNaN(v) || v <= 0) return;
-
-            newItems.push({
-                kind: 'additive',
-                id: additive.id,
-                name: additive.name,
+            comps.push({
+                additiveId: additive.id,
                 amount: v,
                 unit: getUnitForForm(additive.form),
                 form: additive.form,
             });
-
-            if (additive.form === 'liquid') {
-                addedLiters += v / 1000;
-            } else if (additive.form === 'solid') {
-                addedLiters += v * SOLID_GRAM_TO_LITER;
-            }
         });
 
-        if (newItems.length === 0) {
+        if (comps.length === 0 && water <= 0) {
             alert('Введите хотя бы один компонент для замеса.');
             return;
         }
 
-        setTanks((prev) =>
-            prev.map((t) => {
-                if (t.id !== activeTankId) return t;
-                const merged = mergeItems(t.items, newItems);
-                return {
-                    ...t,
-                    usedLiters: Math.min(t.usedLiters + addedLiters, t.volume),
-                    items: merged,
-                };
-            })
-        );
-
-        setToastMessage(
-            `Вы замешали раствор в «${activeTank.name}»: добавлено ${newItems.length} компонент(ов).`
-        );
-
-        setWaterLiters('');
-        setAdditivesCount('');
-        setAdditives([]);
-    };
-
-    function mergeItems(oldItems, newItems) {
-        const result = oldItems.map((it) => ({ ...it }));
-
-        newItems.forEach((n) => {
-            if (n.kind === 'water') {
-                const existing = result.find((r) => r.kind === 'water');
-                if (existing) existing.amount += n.amount;
-                else result.push({ ...n });
-                return;
-            }
-            const existing = result.find(
-                (r) => r.kind === 'additive' && r.id === n.id
-            );
-            if (existing) existing.amount += n.amount;
-            else result.push({ ...n });
+        let total = water;
+        comps.forEach((c) => {
+            if (c.form === 'liquid') total += c.amount / 1000;
+            else total += c.amount * SOLID_GRAM_TO_LITER;
         });
 
-        return result;
-    }
+        try {
+            const history = await solutionHistoryApi.create({
+                tankId: activeTankId,
+                totalVolume: Number(total.toFixed(3)),
+            });
+
+            const payloads = comps.map((c) => ({
+                solutionId: history.id,
+                additiveId: c.additiveId,
+                amount: c.amount,
+                unit: c.unit,
+            }));
+
+            if (water > 0) {
+                payloads.push({
+                    solutionId: history.id,
+                    additiveId: WATER_ADDITIVE_ID,
+                    amount: water,
+                    unit: 'л',
+                });
+            }
+
+            await Promise.all(payloads.map(solutionCompositionApi.create));
+
+            await loadTanks();
+
+            setToastMessage(
+                `Вы замешали раствор в «${activeTank.name}»: ` +
+                `добавлено ${comps.length + (water > 0 ? 1 : 0)} компонент(ов).`
+            );
+
+            setWaterLiters('');
+            setAdditivesCount('');
+            setAdditives([]);
+        } catch (e) {
+            console.error('handleMix:', e);
+            alert(e.response?.data?.message || 'Ошибка сохранения замеса');
+        }
+    };
+
+
+    // Рендер содержимого бака
 
     const renderContents = () => {
-        if (!activeTank.items.length) {
+        if (!activeTank || !activeTank.items.length) {
             return <p className="mix-info__empty">Бак пуст</p>;
         }
         return (
@@ -588,6 +739,9 @@ const SolutionsPage = () => {
         );
     };
 
+    if (loading) return <div className="solutions-loading">Загрузка баков…</div>;
+    if (error) return <div className="solutions-error">{error}</div>;
+
     const mixContent = (
         <div className="solutions-mix">
             {/* Левая колонка */}
@@ -595,11 +749,16 @@ const SolutionsPage = () => {
                 <div className="tanks-selector">
                     <div className="tanks-selector__row" ref={tanksListRef}>
                         {tanks.map((tank, index) => (
-                            <div key={tank.id} className="tanks-selector__tank-wrapper">
+                            <div
+                                key={tank.id}
+                                className="tanks-selector__tank-wrapper"
+                            >
                                 <button
                                     className={
                                         'tanks-selector__tank' +
-                                        (tank.id === activeTankId ? ' tanks-selector__tank--active' : '')
+                                        (tank.id === activeTankId
+                                            ? ' tanks-selector__tank--active'
+                                            : '')
                                     }
                                     onClick={() => setActiveTankId(tank.id)}
                                 >
@@ -631,17 +790,42 @@ const SolutionsPage = () => {
                     </div>
 
                     {tankToDelete !== null && (
-                        <div className="hint-modal-overlay" onClick={cancelDeleteTank}>
-                            <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
-                                <button type="button" className="hint-modal__close" onClick={cancelDeleteTank}>×</button>
+                        <div
+                            className="hint-modal-overlay"
+                            onClick={cancelDeleteTank}
+                        >
+                            <div
+                                className="hint-modal"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    type="button"
+                                    className="hint-modal__close"
+                                    onClick={cancelDeleteTank}
+                                >
+                                    ×
+                                </button>
                                 <div className="hint-modal__icon">⚠</div>
                                 <p className="hint-modal__text">
-                                    Удалить бак «{tanks.find((t) => t.id === tankToDelete)?.name}»?
-                                    Всё его содержимое будет потеряно.
+                                    Удалить бак «
+                                    {tanks.find((t) => t.id === tankToDelete)?.name}
+                                    »? Всё его содержимое будет потеряно.
                                 </p>
                                 <div className="hint-modal__actions">
-                                    <button type="button" className="hint-modal__btn hint-modal__btn--secondary" onClick={cancelDeleteTank}>Отмена</button>
-                                    <button type="button" className="hint-modal__btn hint-modal__btn--danger" onClick={confirmDeleteTank}>Удалить</button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--secondary"
+                                        onClick={cancelDeleteTank}
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--danger"
+                                        onClick={confirmDeleteTank}
+                                    >
+                                        Удалить
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -649,16 +833,31 @@ const SolutionsPage = () => {
 
                     {isAddTankOpen && (
                         <div className="hint-modal-overlay" onClick={cancelAddTank}>
-                            <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
-                                <button type="button" className="hint-modal__close" onClick={cancelAddTank}>×</button>
+                            <div
+                                className="hint-modal"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    type="button"
+                                    className="hint-modal__close"
+                                    onClick={cancelAddTank}
+                                >
+                                    ×
+                                </button>
                                 <div className="hint-modal__icon">🛢</div>
-                                <p className="hint-modal__text">Укажите объём нового бака:</p>
+                                <p className="hint-modal__text">
+                                    Укажите объём нового бака:
+                                </p>
                                 <div className="hint-modal__input-row">
                                     <input
                                         type="text"
                                         inputMode="decimal"
                                         value={newTankVolume}
-                                        onChange={(e) => setNewTankVolume(sanitizeTankVolume(e.target.value))}
+                                        onChange={(e) =>
+                                            setNewTankVolume(
+                                                sanitizeTankVolume(e.target.value)
+                                            )
+                                        }
                                         className="hint-modal__input"
                                         placeholder="2000"
                                         autoFocus
@@ -666,8 +865,20 @@ const SolutionsPage = () => {
                                     <span>л.</span>
                                 </div>
                                 <div className="hint-modal__actions">
-                                    <button type="button" className="hint-modal__btn hint-modal__btn--secondary" onClick={cancelAddTank}>Отмена</button>
-                                    <button type="button" className="hint-modal__btn hint-modal__btn--primary" onClick={confirmAddTank}>Создать</button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--secondary"
+                                        onClick={cancelAddTank}
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="hint-modal__btn hint-modal__btn--primary"
+                                        onClick={confirmAddTank}
+                                    >
+                                        Создать
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -675,38 +886,64 @@ const SolutionsPage = () => {
 
                     {tanks.length > 3 && (
                         <div className="tanks-selector__slider">
-                            <button className="tanks-selector__arrow" onClick={() => scrollTanks('left')}>◀</button>
+                            <button
+                                className="tanks-selector__arrow"
+                                onClick={() => scrollTanks('left')}
+                            >
+                                ◀
+                            </button>
                             <div className="tanks-selector__track">
                                 <div className="tanks-selector__thumb" />
                             </div>
-                            <button className="tanks-selector__arrow" onClick={() => scrollTanks('right')}>▶</button>
+                            <button
+                                className="tanks-selector__arrow"
+                                onClick={() => scrollTanks('right')}
+                            >
+                                ▶
+                            </button>
                         </div>
                     )}
                 </div>
 
-                <div className="tank-view">
-                    <img src="/bak.png" alt="Бак" className="tank-view__img" />
-                    <div className="tank-view__fill">{fillPercent}%</div>
-                </div>
+                {activeTank && (
+                    <>
+                        <div className="tank-view">
+                            <img
+                                src="/bak.png"
+                                alt="Бак"
+                                className="tank-view__img"
+                            />
+                            <div className="tank-view__fill">{fillPercent}%</div>
+                        </div>
 
-                <div className="tank-volume">
-                    <div className="tank-volume__row">
-                        <label>Объём бака</label>
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            value={activeTank.volume === 0 ? '' : activeTank.volume}
-                            onChange={(e) => handleTankVolumeChange(e.target.value)}
-                            className="tank-volume__input"
-                            placeholder="2000"
-                        />
-                        <span>л.</span>
-                    </div>
-                    <div className="tank-volume__info">
-                        Заполнено: <b>{activeTank.usedLiters.toFixed(2)} л</b> из {activeTank.volume} л
-                        {' · '}свободно <b>{freeLiters.toFixed(2)} л</b>
-                    </div>
-                </div>
+                        <div className="tank-volume">
+                            <div className="tank-volume__row">
+                                <label>Объём бака</label>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={
+                                        activeTank.volume === 0
+                                            ? ''
+                                            : activeTank.volume
+                                    }
+                                    onChange={(e) =>
+                                        handleTankVolumeChange(e.target.value)
+                                    }
+                                    className="tank-volume__input"
+                                    placeholder="2000"
+                                />
+                                <span>л.</span>
+                            </div>
+                            <div className="tank-volume__info">
+                                Заполнено:{' '}
+                                <b>{activeTank.usedLiters.toFixed(2)} л</b> из{' '}
+                                {activeTank.volume} л {'·'} свободно{' '}
+                                <b>{freeLiters.toFixed(2)} л</b>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Правая колонка */}
@@ -714,27 +951,96 @@ const SolutionsPage = () => {
                 <div className="mix-info">
                     <div className="mix-info__header">
                         <h3 className="mix-info__title">Содержимое:</h3>
-                        <button
-                            type="button"
-                            className="mix-info__hint-icon"
-                            onClick={() => setIsHintOpen(true)}
-                            title="Подсказка"
-                        >
-                            ⚠
-                        </button>
+                        <div className="mix-info__actions">
+                            <button
+                                type="button"
+                                className="mix-info__clear-btn"
+                                onClick={openClearTankDialog}
+                                disabled={!activeTank || activeTank.items.length === 0 || isClearing}
+                                title="Очистить бак (обнулить содержимое)"
+                            >
+                                Очистить
+                            </button>
+                            <button
+                                type="button"
+                                className="mix-info__hint-icon"
+                                onClick={() => setIsHintOpen(true)}
+                                title="Подсказка"
+                            >
+                                ⚠
+                            </button>
+                        </div>
                     </div>
                     {renderContents()}
                 </div>
 
                 {isHintOpen && (
-                    <div className="hint-modal-overlay" onClick={() => setIsHintOpen(false)}>
-                        <div className="hint-modal" onClick={(e) => e.stopPropagation()}>
-                            <button type="button" className="hint-modal__close" onClick={() => setIsHintOpen(false)}>×</button>
+                    <div
+                        className="hint-modal-overlay"
+                        onClick={() => setIsHintOpen(false)}
+                    >
+                        <div
+                            className="hint-modal"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                className="hint-modal__close"
+                                onClick={() => setIsHintOpen(false)}
+                            >
+                                ×
+                            </button>
                             <div className="hint-modal__icon">⚠</div>
                             <p className="hint-modal__text">
                                 *Содержимое на момент создания прошлого раствора.
                                 Данные не обновляются динамически.
                             </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Модальное окно очистки бака */}
+                {isClearTankOpen && (
+                    <div
+                        className="hint-modal-overlay"
+                        onClick={cancelClearTank}
+                    >
+                        <div
+                            className="hint-modal"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                className="hint-modal__close"
+                                onClick={cancelClearTank}
+                                disabled={isClearing}
+                            >
+                                ×
+                            </button>
+                            <div className="hint-modal__icon">🗑</div>
+                            <p className="hint-modal__text">
+                                Вы уверены, что хотите очистить бак «{activeTank?.name}»?
+                                <br />
+                                Все компоненты будут обнулены, запись об этом сохранится в истории.
+                            </p>
+                            <div className="hint-modal__actions">
+                                <button
+                                    type="button"
+                                    className="hint-modal__btn hint-modal__btn--secondary"
+                                    onClick={cancelClearTank}
+                                    disabled={isClearing}
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="button"
+                                    className="hint-modal__btn hint-modal__btn--danger"
+                                    onClick={confirmClearTank}
+                                    disabled={isClearing}
+                                >
+                                    {isClearing ? 'Очистка...' : 'Очистить'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -759,7 +1065,8 @@ const SolutionsPage = () => {
                         <span>л.</span>
                         {waterOverflow && (
                             <div className="mix-add__overflow-hint">
-                                Максимум — {freeLiters.toFixed(2)} л (свободно в баке)
+                                Максимум — {freeLiters.toFixed(2)} л (свободно в
+                                баке)
                             </div>
                         )}
                     </div>
@@ -770,7 +1077,9 @@ const SolutionsPage = () => {
                             type="text"
                             inputMode="numeric"
                             value={additivesCount}
-                            onChange={(e) => handleAdditivesCountChange(e.target.value)}
+                            onChange={(e) =>
+                                handleAdditivesCountChange(e.target.value)
+                            }
                             className="mix-add__input"
                             placeholder={`0–${MAX_ADDITIVES}`}
                             title={`Максимум: ${MAX_ADDITIVES}`}
@@ -781,39 +1090,68 @@ const SolutionsPage = () => {
                     {additives.length > 0 && (
                         <div className="mix-add__additives">
                             {additives.map((row, index) => {
-                                const additive = solutionAdditives.find((s) => s.id === row.additiveId);
-                                const unit = additive ? getUnitForForm(additive.form) : '';
+                                const additive = solutionAdditives.find(
+                                    (s) => s.id === row.additiveId
+                                );
+                                const unit = additive
+                                    ? getUnitForForm(additive.form)
+                                    : '';
                                 const base = getDoseBase();
 
                                 const usedElsewhere = additives
-                                    .map((r, i) => (i === index ? null : r.additiveId))
+                                    .map((r, i) =>
+                                        i === index ? null : r.additiveId
+                                    )
                                     .filter(Boolean);
 
-                                const availableAdditives = solutionAdditives.filter(
-                                    (s) => !usedElsewhere.includes(s.id)
-                                );
+                                const availableAdditives =
+                                    solutionAdditives.filter(
+                                        (s) =>
+                                            s.id !== WATER_ADDITIVE_ID &&
+                                            !usedElsewhere.includes(s.id)
+                                    );
 
-                                const expected = additive && base
-                                    ? calcDose(additive.dosePerLiter, base, additive.form)
-                                    : null;
-                                const check = additive && base && row.volume
-                                    ? validateDose(
-                                        additive.dosePerLiter,
-                                        base,
-                                        row.volume,
-                                        additive.form
-                                    )
-                                    : null;
-                                const isInvalid = check && (check.status === 'below' || check.status === 'above');
+                                const expected =
+                                    additive && base
+                                        ? calcDose(
+                                            additive.dosePerLiter,
+                                            base,
+                                            additive.form
+                                        )
+                                        : null;
+                                const check =
+                                    additive && base && row.volume
+                                        ? validateDose(
+                                            additive.dosePerLiter,
+                                            base,
+                                            row.volume,
+                                            additive.form
+                                        )
+                                        : null;
+                                const isInvalid =
+                                    check &&
+                                    (check.status === 'below' ||
+                                        check.status === 'above');
 
                                 return (
-                                    <div key={index} className="mix-add__additive-row">
+                                    <div
+                                        key={index}
+                                        className="mix-add__additive-row"
+                                    >
                                         <select
                                             className="mix-add__select"
                                             value={row.additiveId}
-                                            onChange={(e) => updateAdditive(index, 'additiveId', e.target.value)}
+                                            onChange={(e) =>
+                                                updateAdditive(
+                                                    index,
+                                                    'additiveId',
+                                                    e.target.value
+                                                )
+                                            }
                                         >
-                                            <option value="">— выберите добавку —</option>
+                                            <option value="">
+                                                — выберите добавку —
+                                            </option>
                                             {availableAdditives.map((s) => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name} ({s.category})
@@ -826,17 +1164,28 @@ const SolutionsPage = () => {
                                             inputMode="decimal"
                                             className={
                                                 'mix-add__input mix-add__input--volume' +
-                                                (isInvalid ? ' mix-add__input--invalid' : '')
+                                                (isInvalid
+                                                    ? ' mix-add__input--invalid'
+                                                    : '')
                                             }
-                                            placeholder={unit ? `объём, ${unit}` : 'объём'}
+                                            placeholder={
+                                                unit ? `объём, ${unit}` : 'объём'
+                                            }
                                             value={row.volume}
-                                            onChange={(e) => updateAdditive(index, 'volume', e.target.value)}
+                                            onChange={(e) =>
+                                                updateAdditive(
+                                                    index,
+                                                    'volume',
+                                                    e.target.value
+                                                )
+                                            }
                                         />
                                         <span className="mix-add__unit">{unit}</span>
 
                                         {expected && (
                                             <div className="mix-add__dose-hint">
-                                                Рекомендуется: {formatDoseRange(expected)}
+                                                Рекомендуется:{' '}
+                                                {formatDoseRange(expected)}
                                             </div>
                                         )}
                                     </div>
@@ -851,12 +1200,15 @@ const SolutionsPage = () => {
                                 К добавлению: <b>{pendingLiters.toFixed(2)} л</b>
                                 {pendingSolidGrams > 0 && (
                                     <>
-                                        {' '}(вкл. <b>{pendingSolidGrams.toFixed(2)}</b> гр)
+                                        {' '}
+                                        (вкл.{' '}
+                                        <b>{pendingSolidGrams.toFixed(2)}</b> гр)
                                     </>
                                 )}
                             </div>
                             <div className="mix-add__summary-line">
-                                Остаток места в баке: <b>{remainingAfterPending.toFixed(2)} л</b>
+                                Остаток места в баке:{' '}
+                                <b>{remainingAfterPending.toFixed(2)} л</b>
                             </div>
                         </div>
                     )}
@@ -864,17 +1216,22 @@ const SolutionsPage = () => {
 
                 {exceedsTank && (
                     <div className="mix-warning mix-warning--danger">
-                        <div className="mix-warning__title">⚠ Превышен объём бака:</div>
+                        <div className="mix-warning__title">
+                            ⚠ Превышен объём бака:
+                        </div>
                         <p>
-                            В баке свободно только <b>{freeLiters.toFixed(2)} л</b>,
-                            а вы пытаетесь добавить <b>{pendingLiters.toFixed(2)} л</b>.
+                            В баке свободно только <b>{freeLiters.toFixed(2)} л</b>
+                            , а вы пытаетесь добавить{' '}
+                            <b>{pendingLiters.toFixed(2)} л</b>.
                         </p>
                     </div>
                 )}
 
                 {violationsAmongSelected.length > 0 && (
                     <div className="mix-warning mix-warning--danger">
-                        <div className="mix-warning__title">⚠ Несовместимые добавки между собой:</div>
+                        <div className="mix-warning__title">
+                            ⚠ Несовместимые добавки между собой:
+                        </div>
                         <ul className="mix-warning__list">
                             {violationsAmongSelected.map((v, i) => (
                                 <li key={i}>{v.reason}</li>
@@ -891,7 +1248,8 @@ const SolutionsPage = () => {
                         <ul className="mix-warning__list">
                             {violationsWithTank.map((v, i) => (
                                 <li key={i}>
-                                    <b>{v.conflictingName}</b> уже в баке. {v.reason}
+                                    <b>{v.conflictingName}</b> уже в баке.{' '}
+                                    {v.reason}
                                 </li>
                             ))}
                         </ul>
@@ -907,7 +1265,11 @@ const SolutionsPage = () => {
                             {alreadyInTankWarnings.map((w, i) => (
                                 <li key={i}>
                                     <b>{w.additiveName}</b> — уже добавлено{' '}
-                                    <b>{w.existingAmount} {w.existingUnit}</b>. Новое количество будет прибавлено к текущему.
+                                    <b>
+                                        {w.existingAmount} {w.existingUnit}
+                                    </b>
+                                    . Новое количество будет прибавлено к
+                                    текущему.
                                 </li>
                             ))}
                         </ul>
@@ -923,7 +1285,9 @@ const SolutionsPage = () => {
                                 : 'mix-warning--warning')
                         }
                     >
-                        <div className="mix-warning__title">⚠ Проверьте дозировки:</div>
+                        <div className="mix-warning__title">
+                            ⚠ Проверьте дозировки:
+                        </div>
                         <ul className="mix-warning__list">
                             {doseWarnings.map((w, i) => (
                                 <li key={i}>
@@ -949,8 +1313,12 @@ const SolutionsPage = () => {
                 <button
                     className="mix-button"
                     onClick={handleMix}
-                    disabled={!canMix}
-                    title={!canMix ? 'Есть проблемы с совместимостью или объёмом' : 'Замешать'}
+                    disabled={!canMix || !activeTank}
+                    title={
+                        !canMix
+                            ? 'Есть проблемы с совместимостью или объёмом'
+                            : 'Замешать'
+                    }
                 >
                     Замешать
                 </button>
@@ -959,7 +1327,12 @@ const SolutionsPage = () => {
     );
 
     return (
-        <div className={'solutions-page' + (activeTab === 'info' ? ' solutions-page--no-bg' : '')}>
+        <div
+            className={
+                'solutions-page' +
+                (activeTab === 'info' ? ' solutions-page--no-bg' : '')
+            }
+        >
             <div className="solutions-tabs">
                 <button
                     className={
@@ -973,7 +1346,9 @@ const SolutionsPage = () => {
                 <button
                     className={
                         'solutions-tabs__tab' +
-                        (activeTab === 'info' ? ' solutions-tabs__tab--active' : '')
+                        (activeTab === 'info'
+                            ? ' solutions-tabs__tab--active'
+                            : '')
                     }
                     onClick={() => setActiveTab('info')}
                 >
@@ -982,10 +1357,7 @@ const SolutionsPage = () => {
             </div>
 
             {activeTab === 'mix' ? mixContent : <SolutionsInfo />}
-            <Toast
-                message={toastMessage}
-                onClose={() => setToastMessage('')}
-            />
+            <Toast message={toastMessage} onClose={() => setToastMessage('')} />
         </div>
     );
 };
