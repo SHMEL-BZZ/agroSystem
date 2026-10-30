@@ -130,6 +130,10 @@ const SolutionsPage = () => {
     const [isAddTankOpen, setIsAddTankOpen] = useState(false);
     const [newTankVolume, setNewTankVolume] = useState('2000');
 
+    // Состояние для модалки очистки бака
+    const [isClearTankOpen, setIsClearTankOpen] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+
     const [tanks, setTanks] = useState([]);
     const [activeTankId, setActiveTankId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -256,6 +260,49 @@ const SolutionsPage = () => {
         } catch (e) {
             console.error('createTank:', e);
             alert(e.response?.data?.message || 'Ошибка создания бака');
+        }
+    };
+
+    // Очистка бака (обнуление компонентов)
+    const openClearTankDialog = () => {
+        if (!activeTank || activeTank.items.length === 0) return;
+        setIsClearTankOpen(true);
+    };
+    const cancelClearTank = () => setIsClearTankOpen(false);
+    const confirmClearTank = async () => {
+        if (!activeTank) return;
+
+        setIsClearing(true);
+        try {
+            // 1. Создаем запись в истории раствора (фиксируем факт очистки)
+            // totalVolume = 0, так как все компоненты будут 0
+            const history = await solutionHistoryApi.create({
+                tankId: activeTankId,
+                totalVolume: 0,
+            });
+
+            // 2. Для всех текущих компонентов в баке создаем записи с amount = 0
+            // (Кроме воды, если она есть, но по логике вода тоже обнуляется)
+            const payloads = activeTank.items.map((it) => ({
+                solutionId: history.id,
+                additiveId: it.kind === 'water' ? WATER_ADDITIVE_ID : it.id,
+                amount: 0,
+                unit: it.unit,
+            }));
+
+            // 3. Отправляем на сервер
+            await Promise.all(payloads.map(solutionCompositionApi.create));
+
+            // 4. Перезагружаем данные, чтобы UI обновился
+            await loadTanks();
+
+            setToastMessage(`Бак «${activeTank.name}» очищен (обнулен).`);
+            setIsClearTankOpen(false);
+        } catch (e) {
+            console.error('clearTank:', e);
+            alert(e.response?.data?.message || 'Ошибка очистки бака');
+        } finally {
+            setIsClearing(false);
         }
     };
 
@@ -904,14 +951,25 @@ const SolutionsPage = () => {
                 <div className="mix-info">
                     <div className="mix-info__header">
                         <h3 className="mix-info__title">Содержимое:</h3>
-                        <button
-                            type="button"
-                            className="mix-info__hint-icon"
-                            onClick={() => setIsHintOpen(true)}
-                            title="Подсказка"
-                        >
-                            ⚠
-                        </button>
+                        <div className="mix-info__actions">
+                            <button
+                                type="button"
+                                className="mix-info__clear-btn"
+                                onClick={openClearTankDialog}
+                                disabled={!activeTank || activeTank.items.length === 0 || isClearing}
+                                title="Очистить бак (обнулить содержимое)"
+                            >
+                                Очистить
+                            </button>
+                            <button
+                                type="button"
+                                className="mix-info__hint-icon"
+                                onClick={() => setIsHintOpen(true)}
+                                title="Подсказка"
+                            >
+                                ⚠
+                            </button>
+                        </div>
                     </div>
                     {renderContents()}
                 </div>
@@ -937,6 +995,52 @@ const SolutionsPage = () => {
                                 *Содержимое на момент создания прошлого раствора.
                                 Данные не обновляются динамически.
                             </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Модальное окно очистки бака */}
+                {isClearTankOpen && (
+                    <div
+                        className="hint-modal-overlay"
+                        onClick={cancelClearTank}
+                    >
+                        <div
+                            className="hint-modal"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                className="hint-modal__close"
+                                onClick={cancelClearTank}
+                                disabled={isClearing}
+                            >
+                                ×
+                            </button>
+                            <div className="hint-modal__icon">🗑</div>
+                            <p className="hint-modal__text">
+                                Вы уверены, что хотите очистить бак «{activeTank?.name}»?
+                                <br />
+                                Все компоненты будут обнулены, запись об этом сохранится в истории.
+                            </p>
+                            <div className="hint-modal__actions">
+                                <button
+                                    type="button"
+                                    className="hint-modal__btn hint-modal__btn--secondary"
+                                    onClick={cancelClearTank}
+                                    disabled={isClearing}
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="button"
+                                    className="hint-modal__btn hint-modal__btn--danger"
+                                    onClick={confirmClearTank}
+                                    disabled={isClearing}
+                                >
+                                    {isClearing ? 'Очистка...' : 'Очистить'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

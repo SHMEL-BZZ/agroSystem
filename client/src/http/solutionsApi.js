@@ -48,6 +48,9 @@ export const solutionHistoryApi = {
 
     create: ({ tankId, totalVolume, date }) =>
         http.post(ENDPOINTS.solutionHistory, { tankId, totalVolume, date }),
+
+    clearTank: (tankId) =>
+        http.post(`${ENDPOINTS.solutionHistory}/${tankId}/clear`),
 };
 
 // Состав замеса (добавки и их количество)

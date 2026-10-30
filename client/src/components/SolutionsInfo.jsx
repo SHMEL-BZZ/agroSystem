@@ -1,53 +1,29 @@
-﻿import React, { useMemo, useState, useEffect } from 'react';
-import { fetchAdditives } from '../http/additiveAPI';
-import { getUnitForForm } from '../utils/dosing';
+﻿import React, { useMemo, useState } from 'react';
+import { solutionAdditives, solutionGroups } from '../data/solutionsInfo';
 
 const SolutionsInfo = () => {
     const [query, setQuery] = useState('');
-    const [additives, setAdditives] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        fetchAdditives()
-            .then((data) => {
-                setAdditives(data);
-                setError(null);
-            })
-            .catch((err) => {
-                console.error('Ошибка загрузки добавок:', err);
-                setError('Не удалось загрузить справочник добавок.');
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    }, []);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return additives;
+        if (!q) return solutionAdditives;
 
-        return additives.filter((item) =>
+        return solutionAdditives.filter((item) =>
             [item.name, item.category, item.description, item.note]
-                .filter(Boolean)
                 .join(' ')
                 .toLowerCase()
                 .includes(q)
         );
-    }, [query, additives]);
+    }, [query]);
 
     const grouped = useMemo(() => {
         const map = {};
+        solutionGroups.forEach((g) => (map[g.id] = []));
         filtered.forEach((item) => {
-            const cat = item.category || 'Прочее';
-            if (!map[cat]) map[cat] = [];
-            map[cat].push(item);
+            if (map[item.group]) map[item.group].push(item);
         });
         return map;
     }, [filtered]);
-
-    if (loading) return <div className="solutions-info__empty">Загрузка справочника...</div>;
-    if (error) return <div className="solutions-info__empty" style={{ color: 'red' }}>{error}</div>;
 
     const isEmpty = filtered.length === 0;
 
@@ -80,14 +56,14 @@ const SolutionsInfo = () => {
             )}
 
             {!isEmpty &&
-                Object.keys(grouped).map((categoryName) => {
-                    const items = grouped[categoryName];
+                solutionGroups.map((group) => {
+                    const items = grouped[group.id];
                     if (!items || items.length === 0) return null;
 
                     return (
-                        <section key={categoryName} className="solutions-info__group">
-                            <h2 className="solutions-info__group-title">
-                                {categoryName}
+                        <section key={group.id} className="solutions-info__group">
+                            <h2 className={`solutions-info__group-title solutions-info__group-title--${group.id}`}>
+                                {group.title}
                             </h2>
 
                             <div className="solutions-info__list">
@@ -97,22 +73,17 @@ const SolutionsInfo = () => {
                                             src={`/additives/${item.id}.jpg`}
                                             alt={item.name}
                                             className="solutions-info__img"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
                                         />
 
                                         <div className="solutions-info__body">
-                                            {item.category && (
-                                                <div className="solutions-info__category">
-                                                    {item.category}
-                                                </div>
-                                            )}
+                                            <div className="solutions-info__category">
+                                                {item.category}
+                                            </div>
                                             <h3 className="solutions-info__name">{item.name}</h3>
 
-                                            {item.description && (
-                                                <p className="solutions-info__description">
-                                                    {item.description}
-                                                </p>
-                                            )}
+                                            <p className="solutions-info__description">
+                                                {item.description}
+                                            </p>
 
                                             {item.dosePerLiter && (
                                                 <p className="solutions-info__dose">
