@@ -1,7 +1,7 @@
 const { SolutionComposition, SolutionHistory, Additive } = require('../models/models')
 const ApiError = require('../error/ApiError')
 
-const VALID_UNITS = ['кг', 'л']
+const VALID_UNITS = ['г', 'л','мл']
 
 
 class SolutionCompositionController {
@@ -16,8 +16,15 @@ class SolutionCompositionController {
             if (Number(amount) <= 0) {
                 return next(ApiError.badRequest('Количество должно быть больше 0'))
             }
-            if (unit && !VALID_UNITS.includes(unit)) {
-                return next(ApiError.badRequest('Недопустимая единица измерения'))
+
+            // ← ОДНА проверка unit, с логом
+            if (unit !== undefined && unit !== null && unit !== '' && !VALID_UNITS.includes(unit)) {
+                console.log('[UNIT REJECTED]', JSON.stringify(unit),
+                    '| typeof:', typeof unit,
+                    '| codepoints:', [...String(unit)].map(c => c.codePointAt(0).toString(16)))
+                return next(ApiError.badRequest(
+                    `Недопустимая единица измерения: "${unit}". Допустимо: ${VALID_UNITS.join(', ')}`
+                ))
             }
 
             const solution = await SolutionHistory.findByPk(solutionId)
@@ -92,11 +99,19 @@ class SolutionCompositionController {
                 return next(ApiError.notFound('Состав не найден'))
             }
 
-            // if (amount !== undefined && Number(amount) <= 0) {
-            //     return next(ApiError.badRequest('Количество должно быть больше 0'))
-            // }
-            if (unit && !VALID_UNITS.includes(unit)) {
-                return next(ApiError.badRequest('Недопустимая единица измерения'))
+            // ← ОДНА проверка unit, с логом
+            if (unit !== undefined && unit !== null && unit !== '' && !VALID_UNITS.includes(unit)) {
+                console.log('[UNIT REJECTED]', JSON.stringify(unit),
+                    '| typeof:', typeof unit,
+                    '| codepoints:', [...String(unit)].map(c => c.codePointAt(0).toString(16)))
+                return next(ApiError.badRequest(
+                    `Недопустимая единица измерения: "${unit}". Допустимо: ${VALID_UNITS.join(', ')}`
+                ))
+            }
+
+            // ← верни проверку amount (сейчас закомментирована)
+            if (amount !== undefined && Number(amount) <= 0) {
+                return next(ApiError.badRequest('Количество должно быть больше 0'))
             }
 
             if (solutionId) {
