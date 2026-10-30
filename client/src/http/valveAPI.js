@@ -1,26 +1,27 @@
-import { $authHost, $host } from './index';
+import { $authHost } from './index';
+import { ENDPOINTS } from '../config/api';
 
-// Получить все клапаны
+// Получить все клапаны (теперь требует токен, поэтому $authHost)
 export const fetchValves = async () => {
-    const { data } = await $host.get('api/valve');
+    // Убрали 'api/' в начале, так как базовый URL уже содержит /api
+    const { data } = await $authHost.get(ENDPOINTS.valves);
     return data;
 };
 
 // Получить один клапан по id
 export const fetchOneValve = async (id) => {
-    const { data } = await $host.get(`api/valve/${id}`);
+    const { data } = await $authHost.get(`${ENDPOINTS.valves}/${id}`);
     return data;
 };
 
 // Привязать теплицу к клапану
-// payload = { blockId } для существующей, либо { name, description } для новой
 export const linkGreenhouseToValve = async (valveId, payload) => {
-    const { data } = await $authHost.post(`api/valve/${valveId}/greenhouses`, payload);
+    const { data } = await $authHost.post(`${ENDPOINTS.valves}/${valveId}/greenhouses`, payload);
     return data;
 };
 
 // Отвязать теплицу от клапана
 export const unlinkGreenhouseFromValve = async (valveId, blockId) => {
-    const { data } = await $authHost.delete(`api/valve/${valveId}/greenhouses/${blockId}`);
+    const { data } = await $authHost.delete(`${ENDPOINTS.valves}/${valveId}/greenhouses/${blockId}`);
     return data;
 };

@@ -22,7 +22,7 @@ const startServer = async () => {
         console.log('Подключение к базе watering_auth успешно.');
 
         // Синхронизация модели с БД (создаст таблицу users, если её нет)
-        await sequelize.sync({ alter: true });
+        await sequelize.sync(); 
         console.log('Таблицы синхронизированы.');
 
         app.listen(PORT, () => {

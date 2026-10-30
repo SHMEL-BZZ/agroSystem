@@ -27,10 +27,9 @@ const RegisterPage = () => {
         }
 
         try {
-            const decodedUser = await
-
-
-                registration(form.login, form.email, form.password);
+            // ВАЖНО: порядок аргументов должен совпадать с функцией registration в userAPI.js
+            // registration(login, password, email)
+            const decodedUser = await registration(form.login, form.password, form.email);
 
             user.setUser(decodedUser);
             user.setIsAuth(true);
@@ -39,7 +38,7 @@ const RegisterPage = () => {
             navigate('/home');
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || 'Ошибка регистрации');
+            alert(err.message || 'Ошибка регистрации');
         }
     };
 

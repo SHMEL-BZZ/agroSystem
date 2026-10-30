@@ -1,15 +1,34 @@
 {
-  "name": "agroSystem",
+  "name": "agrosystem",
   "version": "1.0.0",
   "description": "",
   "main": "server/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:auth": "cd services/auth-service && node index.js",
+    "start:core": "cd server && node index.js",
+    "start:gateway": "cd services/api-gateway && node index.js",
+    "start:client": "cd client && npm start",
+    "dev": "concurrently -k -n \"AUTH,CORE,GATEWAY,CLIENT\" -c \"bgBlue,bgGreen,bgYellow,bgMagenta\" \"npm:start:auth\" \"npm:start:core\" \"npm:start:gateway\" \"npm:start:client\""
   },
   "private": true,
   "dependencies": {
     "bcrypt": "^6.0.0",
     "express-fileupload": "^1.5.2",
     "jsonwebtoken": "^9.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SHMEL-BZZ/agroSystem.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SHMEL-BZZ/agroSystem/issues"
+  },
+  "homepage": "https://github.com/SHMEL-BZZ/agroSystem#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }
