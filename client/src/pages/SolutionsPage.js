@@ -364,7 +364,9 @@ const SolutionsPage = () => {
         setAdditives((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
-                const next = { ...item, [field]: value };
+                // Если меняем добавку — принудительно делаем ID числом
+                const finalValue = field === 'additiveId' && value ? Number(value) : value;
+                const next = { ...item, [field]: finalValue };
 
                 if (field === 'volume') {
                     next.autoFilled = false;
@@ -373,7 +375,7 @@ const SolutionsPage = () => {
 
                 if (field === 'additiveId') {
                     const additive = solutionAdditives.find(
-                        (s) => s.id === value
+                        (s) => s.id === Number(value)
                     );
                     const base = getDoseBase();
                     const dose =
@@ -674,27 +676,40 @@ const SolutionsPage = () => {
         });
 
         try {
+            // 1. Создаем историю
             const history = await solutionHistoryApi.create({
                 tankId: activeTankId,
                 totalVolume: Number(total.toFixed(3)),
             });
 
+            // 2. ПРОВЕРКА: Достаем ID всеми возможными способами
+            // (вдруг API возвращает объект внутри объекта)
+            const currentId = history?.id || history?.data?.id || history?.history?.id;
+
+            if (!currentId) {
+                alert('ОШИБКА: Сервер не вернул ID созданного раствора. Проверь API.');
+                return; // Останавливаем выполнение, чтобы не спамить 400-ми ошибками
+            }
+
+            // 3. Формируем массив для отправки
             const payloads = comps.map((c) => ({
-                solutionId: history.id,
+                solutionId: currentId, // <-- Используем проверенный ID
                 additiveId: c.additiveId,
                 amount: c.amount,
                 unit: c.unit,
             }));
 
+            // 4. Добавляем воду
             if (water > 0) {
                 payloads.push({
-                    solutionId: history.id,
+                    solutionId: currentId, // <-- И тут тоже
                     additiveId: WATER_ADDITIVE_ID,
                     amount: water,
                     unit: 'л',
                 });
             }
 
+            // 5. Отправляем
             await Promise.all(payloads.map(solutionCompositionApi.create));
 
             await loadTanks();
