@@ -1,4 +1,4 @@
-const { SolutionHistory, Tank, SolutionComposition, Additive} = require('../models/models')
+const { SolutionHistory, Tank, SolutionComposition, Additive } = require('../models/models')
 const ApiError = require('../error/ApiError')
 
 // исотрия раствора контроллер
@@ -8,12 +8,24 @@ class SolutionHistoryController {
         try {
             const tankId = req.params.id;
 
-            const newHistory = await ИсторияРаствора.create({
+            const currentSolution = await SolutionHistory.findOne({
+                where: { id_бака: tankId },
+                order: [['дата', 'DESC']]
+            });
+
+            if (currentSolution) {
+                await SolutionComposition.destroy({
+                    where: { id_раствора: currentSolution.id_раствора }
+                });
+                await currentSolution.update({ общий_объем: 0 });
+            }
+
+            const newHistory = await SolutionHistory.create({
                 id_бака: tankId,
                 общий_объем: 0,
             });
 
-            const allAdditives = await Добавки.findAll();
+            const allAdditives = await Additive.findAll();
 
             const compositions = allAdditives.map(additive => ({
                 id_раствора: newHistory.id_раствора,
@@ -29,7 +41,7 @@ class SolutionHistoryController {
                 ед_измерения: 'л'
             });
 
-            await СоставРаствора.bulkCreate(compositions);
+            await SolutionComposition.bulkCreate(compositions);
 
             return res.json({
                 message: 'Бак успешно очищен',
@@ -51,7 +63,6 @@ class SolutionHistoryController {
                 return next(ApiError.badRequest('tankId обязателен'))
             }
 
-            // Проверка FK
             const tank = await Tank.findByPk(tankId)
             if (!tank) {
                 return next(ApiError.badRequest('Бак не найден'))
@@ -83,7 +94,6 @@ class SolutionHistoryController {
             const where = {}
             if (tankId) where.tankId = tankId
 
-            // Фильтр по датам
             if (dateFrom || dateTo) {
                 const { Op } = require('sequelize')
                 where.date = {}
@@ -119,8 +129,6 @@ class SolutionHistoryController {
             const solution = await SolutionHistory.findByPk(id, {
                 include: [
                     { model: Tank, as: 'tank' }
-                    // если хотите состав — раскомментируйте
-                    // { model: SolutionComposition, as: 'composition' }
                 ]
             })
             if (!solution) {
