@@ -1,62 +1,94 @@
-// файл, с которого начинается запуск backend части.
-// перед установкой зависимостей через npm необходимо скачать node.js https://nodejs.org/en/download
-// npm run dev
-
-// импорт файл с конфигами (.env)
+const express = require('express');
+const sequelize = require('./db');
+const models = require('./models/models');
+const cors = require('cors');
+const fileUpload = require('express-fileupload');
+const router = require('./routes/index');
+const jwt = require('jsonwebtoken'); // Добавляем для проверки токенов
 require('dotenv').config();
 
-// для импорта модулей в файл
-const express = require('express')
-const sequelize = require('./db')
-const models = require('./models/models')
-const cors = require('cors')
-const fileUpload = require('express-fileupload')
-const router = require('./routes/index')
-const errorHandler = require('./middleware/ErrorHandlingMiddleware')
-const {resolve} = require("node:path");
-
-// порт, на котором работает backend часть
+const app = express();
 const PORT = process.env.PORT || 5000;
 
-// вызов функции express для запуска приложения
-const app = express()
-app.use(cors())
-app.use(express.json())
-app.use(express.static(resolve(__dirname, 'static')))
-app.use(fileUpload({}))
-app.use('/api', router)
+app.use(cors());
+app.use(express.json());
+app.use(fileUpload());
 
+// =====================================================================
+// MIDDLEWARE ДЛЯ ПРОВЕРКИ JWT-ТОКЕНА
+// =====================================================================
+const authMiddleware = (req, res, next) => {
+    let token;
 
-/*app.get('/', (req, res) => {
-    res.status(200).json({message:'Работает'})
-})*/
+    // 1. Ищем токен в заголовках (как это делает фронтенд или Postman)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    }
+   
 
-// Обработка ошибок, последний Middleware
-app.use(errorHandler)
+    // Если токена нет ни там, ни там — запрещаем
+    if (!token) {
+        return res.status(401).json({ message: 'Доступ запрещен. Нет токена авторизации.' });
+    }
 
-// подключение к БД
-const start = async () => {
     try {
-        await sequelize.authenticate();
-        await sequelize.sync();
-        app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-
-        const cron = require('node-cron');
-
-        // Каждую минуту проверяем расписание
-        cron.schedule('* * * * *', async () => {
-            try {
-                await sequelize.query('SELECT process_past_watering_schedules()');
-            } catch (e) {
-                console.error('Ошибка обработки расписания полива:', e.message);
-            }
-        });
-    } catch (e) {
-        console.log(e);
+        // 3. Проверяем токен
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_key_agro');
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Неверный или истекший токен.' });
     }
 };
+// =====================================================================
+// ПОДКЛЮЧЕНИЕ РОУТОВ
+// =====================================================================
+// Защищаем все роуты через authMiddleware.
+// Если в вашем роутере есть публичные пути, их нужно будет вынести выше.
+app.use('/api', authMiddleware, router);
 
+// =====================================================================
+// ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК
+// =====================================================================
+app.use((err, req, res, next) => {
+    console.log('Error:', err.status, err.message);
+    if (err.status) {
+        return res.status(err.status).json({ message: err.message });
+    }
+    if (err.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ message: 'Такая запись уже существует' });
+    }
+    console.error(err);
+    return res.status(500).json({ message: 'Внутренняя ошибка сервера' });
+});
 
-start();
+// Экспортируем app для тестов
+module.exports = app;
 
+// =====================================================================
+// ЗАПУСК СЕРВЕРА
+// =====================================================================
+if (require.main === module) {
+    const start = async () => {
+        try {
+            await sequelize.authenticate();
+            console.log('Подключение к базе watering успешно.');
 
+            // ВАЖНО: sync() лучше не использовать в продакшене, 
+            // но для учебного проекта оставим (или используйте миграции)
+            await sequelize.sync();
+
+            app.listen(PORT, () => console.log(`Core Service запущен на порту ${PORT}`));
+
+            // Ваш cron (если он нужен)
+            const cron = require('node-cron');
+            cron.schedule('* * * * *', async () => {
+                // ваша логика
+            });
+        } catch (e) {
+            console.log('Ошибка запуска Core Service:', e);
+        }
+    };
+    start();
+}

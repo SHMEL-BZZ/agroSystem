@@ -84,6 +84,39 @@ class WateringHistoryController {
         }
     }
 
+    // server/controllers/wateringHistoryController.js
+
+    // GET /api/watering-history/date/:date
+    async getByDate(req, res, next) {
+        try {
+            const { date } = req.params;
+
+            if (!date) {
+                return next(ApiError.badRequest('Дата обязательна'));
+            }
+
+            const waterings = await WateringHistory.findAll({
+                where: {
+                    startTime: {
+                        [Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
+                    },
+                },
+                order: [['startTime', 'ASC']],
+                include: [
+                    { model: DailyCondition, as: 'condition', required: false },
+                    { model: SolutionHistory, as: 'solution', required: false },
+                    // Дренаж — если в модели есть ассоциация `drains`
+                    // { model: DrainHistory, as: 'drains', required: false },
+                ],
+            });
+
+            return res.json(waterings);
+        } catch (e) {
+            console.error('WATERING GET BY DATE ERROR:', e);
+            return next(ApiError.internal(e.message));
+        }
+    }
+
     // GET /api/watering-history/:id
     async getOne(req, res, next) {
         try {

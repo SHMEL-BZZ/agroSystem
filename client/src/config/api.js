@@ -1,23 +1,22 @@
 // client/src/config/api.js
 
-// Р‘Р°Р·РѕРІС‹Р№ URL СЃРµСЂРІРµСЂР°.
-// Р’ dev-СЂРµР¶РёРјРµ вЂ” localhost, РІ РїСЂРѕРґР°РєС€РµРЅРµ вЂ” СЂРµР°Р»СЊРЅС‹Р№ РґРѕРјРµРЅ.
+// Базовый URL сервера (API Gateway).
 export const API_BASE_URL =
-    import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
-// Р’СЃРµ СЌРЅРґРїРѕРёРЅС‚С‹ РІ РѕРґРЅРѕРј РјРµСЃС‚Рµ вЂ” С‡С‚РѕР±С‹ РЅРµ РёСЃРєР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ РєРѕРґСѓ
+// Все эндпоинты в одном месте — чтобы не искать строки по коду
 export const ENDPOINTS = {
     auth: {
-        login: '/user/login',
-        register: '/user/registration',
-        check: '/user/auth',
+        login: '/auth/login',
+        register: '/auth/register',
+        check: '/auth/check',
     },
     valves: '/valve',
     greenhouses: '/greenhouse',
     tanks: '/tank',
     additives: '/additive',
     solutions: '/solution',
-    solutionHistory: '/solution-history',
+    solutionHistory: '/solution-history', // Добавили из ветки напарницы
     solutionComposition: '/solution-composition',
     watering: '/watering',
     conditions: '/condition',
