@@ -8,5 +8,6 @@ router.get('/', controller.getAll)
 router.get('/:id', controller.getOne)
 router.put('/:id', authMiddleware, controller.update)
 router.delete('/:id', authMiddleware, controller.delete)
+router.post('/:id/clear', authMiddleware, controller.clearTank)
 
 module.exports = router

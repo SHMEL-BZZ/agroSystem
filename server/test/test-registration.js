@@ -11,7 +11,6 @@ const errorHandler = require('../middleware/ErrorHandlingMiddleware');
 // Мок bcrypt
 jest.mock('bcrypt', () => ({
     hash: jest.fn().mockImplementation((password, salt) => {
-        // возвращаем строку длиной 60 символов, как настоящий bcrypt-хеш
         return Promise.resolve('$2b$10$' + 'a'.repeat(53));
     }),
     compare: jest.fn(),
@@ -43,16 +42,16 @@ app.use(express.json());
 app.use('/api/user', userRouter);
 app.use(errorHandler);
 
-describe('POST /api/user/registration', () => {
+describe('POST /api/user/register', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    //  Валидация логина 
+    // ─── Валидация логина ───
     describe('Валидация логина', () => {
         it('400 — если login отсутствует', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ password: '123456' });
 
             expect(res.status).toBe(400);
@@ -63,7 +62,7 @@ describe('POST /api/user/registration', () => {
 
         it('400 — если login короче 3 символов', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'ab', password: '123456' });
 
             expect(res.status).toBe(400);
@@ -72,44 +71,44 @@ describe('POST /api/user/registration', () => {
 
         it('400 — если login длиннее 50 символов', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'a'.repeat(51), password: '123456' });
 
             expect(res.status).toBe(400);
             expect(res.body.message).toBe('Логин должен быть от 3 до 50 символов');
         });
 
-        it('200 — login ровно 3 символа (граница)', async () => {
+        it('201 — login ровно 3 символа (граница)', async () => {
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 1, login: 'abc' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'abc', password: '123456' });
 
-            expect(res.status).toBe(200);
+            expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('token');
         });
 
-        it('200 — login ровно 50 символов (граница)', async () => {
+        it('201 — login ровно 50 символов (граница)', async () => {
             const longLogin = 'a'.repeat(50);
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 2, login: longLogin });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: longLogin, password: '123456' });
 
-            expect(res.status).toBe(200);
+            expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('token');
         });
     });
 
-    //  Валидация пароля 
+    // ─── Валидация пароля ───
     describe('Валидация пароля', () => {
         it('400 — если password отсутствует', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya' });
 
             expect(res.status).toBe(400);
@@ -120,31 +119,31 @@ describe('POST /api/user/registration', () => {
 
         it('400 — если password короче 6 символов', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '12345' });
 
             expect(res.status).toBe(400);
             expect(res.body.message).toBe('Пароль должен быть минимум 6 символов');
         });
 
-        it('200 — password ровно 6 символов (граница)', async () => {
+        it('201 — password ровно 6 символов (граница)', async () => {
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 3, login: 'vasya' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456' });
 
-            expect(res.status).toBe(200);
+            expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('token');
         });
     });
 
-    //  Email 
+    // ─── Email ───
     describe('Валидация email', () => {
         it('400 — невалидный email', async () => {
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456', email: 'not-an-email' });
 
             expect(res.status).toBe(400);
@@ -157,7 +156,7 @@ describe('POST /api/user/registration', () => {
                 .mockResolvedValueOnce(null);
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456', email: 'existing@example.com' });
 
             expect(res.status).toBe(400);
@@ -165,26 +164,26 @@ describe('POST /api/user/registration', () => {
             expect(User.create).not.toHaveBeenCalled();
         });
 
-        it('200 — валидный уникальный email', async () => {
+        it('201 — валидный уникальный email', async () => {
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 4, login: 'vasya', email: 'new@example.com' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456', email: 'new@example.com' });
 
-            expect(res.status).toBe(200);
+            expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('token');
         });
     });
 
-    //  Уникальность login 
+    // ─── Уникальность login ───
     describe('Уникальность login', () => {
         it('400 — login уже существует', async () => {
             User.findOne.mockResolvedValue({ id: 1, login: 'vasya' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456' });
 
             expect(res.status).toBe(400);
@@ -193,17 +192,17 @@ describe('POST /api/user/registration', () => {
         });
     });
 
-    //  Успешная регистрация 
+    // ─── Успешная регистрация ───
     describe('Успешная регистрация', () => {
-        it('200 — возвращает JWT и сохраняет хешированный пароль', async () => {
+        it('201 — возвращает JWT и сохраняет хешированный пароль', async () => {
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 42, login: 'vasya' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456' });
 
-            expect(res.status).toBe(200);
+            expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('token');
             expect(typeof res.body.token).toBe('string');
 
@@ -214,12 +213,12 @@ describe('POST /api/user/registration', () => {
             expect(createArg.password.length).toBe(60);
         });
 
-        it('200 — токен валиден и содержит id/login', async () => {
+        it('201 — токен валиден и содержит id/login', async () => {
             User.findOne.mockResolvedValue(null);
             User.create.mockResolvedValue({ id: 7, login: 'petya' });
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'petya', password: 'qwerty' });
 
             const decoded = jwt.verify(res.body.token, process.env.SECRET_KEY);
@@ -228,13 +227,13 @@ describe('POST /api/user/registration', () => {
         });
     });
 
-    //  Ошибки сервера 
+    // ─── Ошибки сервера ───
     describe('Ошибки сервера', () => {
         it('500 — если User.findOne падает', async () => {
             User.findOne.mockRejectedValue(new Error('DB is down'));
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456' });
 
             expect(res.status).toBe(500);
@@ -246,7 +245,7 @@ describe('POST /api/user/registration', () => {
             User.create.mockRejectedValue(new Error('DB is down'));
 
             const res = await request(app)
-                .post('/api/user/registration')
+                .post('/api/user/register')
                 .send({ login: 'vasya', password: '123456' });
 
             expect(res.status).toBe(500);

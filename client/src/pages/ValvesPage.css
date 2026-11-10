@@ -453,3 +453,29 @@
         width: 100%;
     }
 }
+
+.valves-modal__input--invalid {
+    border-color: #C94F3D;
+    background-color: #FFF5F4;
+}
+
+    .valves-modal__input--invalid:focus {
+        border-color: #C94F3D;
+        box-shadow: 0 0 0 3px rgba(201, 79, 61, 0.15);
+    }
+
+.valves-modal__error {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #C94F3D;
+    font-weight: 500;
+    text-align: left;
+}
+
+.valves-modal__counter {
+    margin-left: 8px;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #6E3813;
+    opacity: 0.7;
+}
