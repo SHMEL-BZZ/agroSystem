@@ -17,7 +17,7 @@ app.use('/api/user', userRouter)
 
 app.use((err, req, res, next) => {
     if (err.status) {
-        return res.status(err.status).json({ message: err.message })
+        return res.status(err.status).json({ message: err.message, code: err.code, email: err.email })
     }
     if (err.name === 'SequelizeUniqueConstraintError') {
         return res.status(409).json({ message: 'Такая запись уже существует' })

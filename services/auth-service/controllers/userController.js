@@ -10,9 +10,8 @@ class UserController {
     async registration(req, res, next) {
         try {
             const { login, password, email } = req.body || {}
-            const userData = await userService.registration(login, password, email)
-            res.cookie('refreshToken', userData.refreshToken, COOKIE_OPTIONS)
-            return res.status(201).json(userData)
+            const result = await userService.registration(login, password, email)
+            return res.status(201).json(result)
         } catch (e) {
             next(e)
         }
@@ -42,8 +41,25 @@ class UserController {
 
     async activate(req, res, next) {
         try {
-            await userService.activate(req.params.link)
-            return res.redirect(process.env.CLIENT_URL || '/')
+            const user = await userService.activate(req.params.link)
+            // автоматический вход: refresh-cookie выставляется здесь, фронт заберёт access-токен через /refresh
+            const tokens = await userService.issueTokens(user)
+            res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS)
+            const client = (process.env.CLIENT_URL || '').split(',')[0].trim().replace(/\/+$/, '')
+            return res.redirect(`${client}/login?activated=1`)
+        } catch (e) {
+            if (e.status === 400) {
+                const client = (process.env.CLIENT_URL || '').split(',')[0].trim().replace(/\/+$/, '')
+                return res.redirect(`${client}/login?activated=0`)
+            }
+            next(e)
+        }
+    }
+
+    async resendActivation(req, res, next) {
+        try {
+            await userService.resendActivation((req.body || {}).login || (req.body || {}).email)
+            return res.json({ message: 'Письмо отправлено повторно' })
         } catch (e) {
             next(e)
         }

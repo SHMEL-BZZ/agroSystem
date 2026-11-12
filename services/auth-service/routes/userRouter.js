@@ -8,6 +8,7 @@ router.post('/register', userController.registration)
 router.post('/login', userController.login)
 router.post('/logout', userController.logout)
 router.post('/refresh', userController.refresh)
+router.post('/resend-activation', userController.resendActivation)
 router.get('/activate/:link', userController.activate)
 
 // требуют access-токен

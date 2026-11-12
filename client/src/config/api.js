@@ -14,6 +14,7 @@ export const ENDPOINTS = {
         register: '/user/register',
         refresh: '/user/refresh',
         logout: '/user/logout',
+        resendActivation: '/user/resend-activation',
     },
     valves: '/valve',
     greenhouses: '/greenhouse',

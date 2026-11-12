@@ -8,6 +8,18 @@ const UserDto = require('../dtos/user-dto')
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+
+const pending = new Map()
+const PENDING_TTL = 24 * 60 * 60 * 1000
+
+const findPending = (identifier) => {
+    for (const [link, p] of pending) {
+        if (p.expires < Date.now()) { pending.delete(link); continue }
+        if (p.login === identifier || p.email === identifier) return [link, p]
+    }
+    return []
+}
+
 class UserService {
     async registration(login, password, email) {
         if (typeof login !== 'string' || login.length < 3 || login.length > 50) {
@@ -16,59 +28,62 @@ class UserService {
         if (typeof password !== 'string' || password.length < 6) {
             throw ApiError.badRequest('Пароль должен быть минимум 6 символов')
         }
-
-        const hasEmail = email !== undefined && email !== null
-        if (hasEmail) {
-            if (typeof email !== 'string' || email === '') {
-                throw ApiError.badRequest('Email не может быть пустым')
-            }
-            if (!EMAIL_REGEX.test(email)) {
-                throw ApiError.badRequest('Некорректный email')
-            }
-            if (await User.findOne({ where: { email } })) {
-                throw ApiError.badRequest('Пользователь с таким email уже существует')
-            }
+        if (typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+            throw ApiError.badRequest('Укажите корректный email')
         }
-
+        if (await User.findOne({ where: { email } })) {
+            throw ApiError.badRequest('Пользователь с таким email уже существует')
+        }
         if (await User.findOne({ where: { login } })) {
             throw ApiError.badRequest('Пользователь с таким login уже существует')
         }
 
-        const hashPassword = await bcrypt.hash(password, 10)
-        const activationLink = crypto.randomUUID()
-        const user = await User.create({
+        for (const key of [login, email]) {
+            const [oldLink] = findPending(key)
+            if (oldLink) pending.delete(oldLink)
+        }
+
+        const link = crypto.randomUUID()
+        pending.set(link, {
             login,
-            password: hashPassword,
-            email: hasEmail ? email : null,
-            activationLink
+            email,
+            password: await bcrypt.hash(password, 10),
+            expires: Date.now() + PENDING_TTL
         })
 
-        if (hasEmail) {
-            const apiUrl = process.env.API_URL || `http://localhost:${process.env.AUTH_PORT || 5001}`
-            await mailService.sendActivationMail(email, `${apiUrl}/api/user/activate/${activationLink}`)
-        }
-
-        return this.issueTokens(user)
+        await this.sendActivation(email, link)
+        return { needActivation: true, email, message: 'Письмо с подтверждением отправлено на почту' }
     }
 
-    async activate(activationLink) {
-        const user = await User.findOne({ where: { activationLink } })
-        if (!user) {
-            throw ApiError.badRequest('Некорректная ссылка активации')
-        }
-        user.isActivated = true
-        await user.save()
+    async sendActivation(email, link) {
+        const apiUrl = process.env.API_URL || `http://localhost:${process.env.AUTH_PORT || 5001}`
+        return mailService.sendActivationMail(email, `${apiUrl}/api/user/activate/${link}`)
     }
 
-    // identifier — логин или email
+    async resendActivation(identifier) {
+        const [link, p] = findPending(identifier)
+        if (!p) throw ApiError.badRequest('Заявка не найдена — зарегистрируйтесь заново')
+        const sent = await this.sendActivation(p.email, link)
+        if (!sent) throw ApiError.internal('Не удалось отправить письмо, попробуйте позже')
+    }
+
+    async activate(link) {
+        const p = pending.get(link)
+        if (!p || p.expires < Date.now()) {
+            throw ApiError.badRequest('Ссылка недействительна, устарела или уже использована')
+        }
+        pending.delete(link)
+        if (await User.findOne({ where: { login: p.login } }) || await User.findOne({ where: { email: p.email } })) {
+            throw ApiError.badRequest('Пользователь с таким логином или почтой уже существует')
+        }
+        return User.create({ login: p.login, email: p.email, password: p.password, isActivated: true })
+    }
+
     async login(identifier, password) {
         if (!identifier || !password) {
             throw ApiError.badRequest('Укажите логин (или email) и пароль')
         }
-        let user = await User.findOne({ where: { login: identifier } })
-        if (!user && EMAIL_REGEX.test(identifier)) {
-            user = await User.findOne({ where: { email: identifier } })
-        }
+        const user = await this.findByIdentifier(identifier)
         if (!user) {
             throw ApiError.badRequest('Пользователь не найден')
         }
@@ -76,7 +91,21 @@ class UserService {
         if (!isPassEquals) {
             throw ApiError.badRequest('Неверный пароль')
         }
+        if (!user.isActivated) {
+            const err = ApiError.forbidden('Подтвердите почту: мы отправили вам письмо со ссылкой')
+            err.code = 'EMAIL_NOT_ACTIVATED'
+            err.email = user.email
+            throw err
+        }
         return this.issueTokens(user)
+    }
+
+    async findByIdentifier(identifier) {
+        let user = await User.findOne({ where: { login: identifier } })
+        if (!user && EMAIL_REGEX.test(identifier)) {
+            user = await User.findOne({ where: { email: identifier } })
+        }
+        return user
     }
 
     async logout(refreshToken) {
@@ -94,7 +123,7 @@ class UserService {
             throw ApiError.unauthorized()
         }
         const user = await User.findByPk(userData.id)
-        if (!user) {
+        if (!user || !user.isActivated) {
             throw ApiError.unauthorized()
         }
         return this.issueTokens(user, tokenFromDb)

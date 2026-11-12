@@ -1,8 +1,7 @@
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { authApi } from '../http';
-import { setToken, decodeToken } from '../utils/authToken';
-import { Context } from '../index';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { registration } from '../http/userAPI'; // ВАЖНО: ваш импорт
+import VerifyEmailModal from '../components/VerifyEmailModal';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -12,8 +11,7 @@ const RegisterPage = () => {
         password: '',
         confirmPassword: '',
     });
-    const { user } = useContext(Context);
-    const navigate = useNavigate();
+    const [verify, setVerify] = useState(null);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,27 +26,20 @@ const RegisterPage = () => {
         }
 
         try {
-            const { token } = await authApi.register({
-                login: form.login,
-                email: form.email,
-                password: form.password,
-            });
-            setToken(token);
-            const decodedUser = decodeToken(token);
-
-            user.setUser(decodedUser);
-            user.setIsAuth(true);
-            localStorage.setItem('username', form.login);
-
-            navigate('/home');
+            // Токен не выдаётся: сначала нужно подтвердить почту
+            const res = await registration(form.login, form.password, form.email);
+            setVerify({ email: res.email || form.email, login: form.login });
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || 'Ошибка регистрации');
+            alert(err.message || 'Ошибка регистрации');
         }
     };
 
     return (
         <div className="auth-page auth-page--right">
+            {verify && (
+                <VerifyEmailModal {...verify} onClose={() => setVerify(null)} />
+            )}
             <div className="auth-card">
                 <h1 className="auth-title">Регистрация</h1>
 
