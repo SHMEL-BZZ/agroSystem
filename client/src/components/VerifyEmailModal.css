@@ -1,0 +1,10 @@
+.verify-modal__status {
+    margin: 0 0 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2F5E22;
+}
+
+.verify-modal__status--error {
+    color: #A32A1A;
+}

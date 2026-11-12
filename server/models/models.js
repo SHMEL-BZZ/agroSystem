@@ -1,37 +1,6 @@
 const sequelize = require('../db')
 const { DataTypes } = require('sequelize')
 
-// модели
-// пользователи
-const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        field: 'id_пользователя'
-    },
-    login: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        unique: true,
-        field: 'логин'
-    },
-    password: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-        field: 'пароль'
-    },
-    email: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-        unique: true,
-        field: 'почта'
-    }
-}, {
-    tableName: 'пользователи',
-    timestamps: false
-})
-
 // клапаны
 const Valve = sequelize.define('Valve', {
     id: {
@@ -530,7 +499,6 @@ Tank.belongsTo(TankPurpose, { foreignKey: 'purposeId', as: 'purpose' })
 
 module.exports = {
     sequelize,
-    User,
     Valve,
     GreenhouseBlock,
     GreenhouseValve,

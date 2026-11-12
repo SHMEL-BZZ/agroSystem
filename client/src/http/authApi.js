@@ -1,17 +1,31 @@
-// client/src/http/authApi.js
+
 import { http } from './http';
 import { ENDPOINTS } from '../config/api';
+import { getToken, decodeToken } from '../utils/authToken';
 
-// Все методы возвращают { token } — сохранением токена занимается вызывающий код
+const toClientShape = (data) => ({ token: data.accessToken, user: data.user });
+
 export const authApi = {
-    // Вход
-    login: (login, password) =>
-        http.post(ENDPOINTS.auth.login, { login, password }),
+    login: async (login, password) =>
+        toClientShape(
+            await http.post(ENDPOINTS.auth.login, { login, password }, { auth: true })
+        ),
 
-    // Регистрация. email необязателен
+
     register: ({ login, email, password }) =>
-        http.post(ENDPOINTS.auth.register, { login, email, password }),
+        http.post(ENDPOINTS.auth.register, { login, email, password }, { auth: true }),
 
-    // Проверка токена (например, при перезагрузке страницы)
-    check: () => http.get(ENDPOINTS.auth.check),
+    refresh: async () =>
+        toClientShape(await http.post(ENDPOINTS.auth.refresh, undefined, { auth: true })),
+
+    logout: () =>
+        http.post(ENDPOINTS.auth.logout, undefined, { auth: true }).catch(() => null),
+
+    check: () => {
+        const token = getToken();
+        if (!token) throw new Error('Нет токена');
+        const decoded = decodeToken(token);
+        if (decoded.exp < Date.now() / 1000) throw new Error('Токен истёк');
+        return decoded;
+    },
 };

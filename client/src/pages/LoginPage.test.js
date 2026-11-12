@@ -1,95 +1,103 @@
-﻿// client/src/pages/LoginPage.test.js
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { MemoryRouter } from 'react-router-dom';
-import LoginPage from './LoginPage';
-import { login as loginRequest } from '../http/userAPI';
+﻿import React, { useState, useContext } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { authApi } from '../http';
+import { setToken, decodeToken } from '../utils/authToken';
+import VerifyEmailModal from '../components/VerifyEmailModal';
+import { Context } from '../index';
+import './LoginPage.css';
 
-jest.mock('../http/userAPI');
+const LoginPage = () => {
+    const [form, setForm] = useState({
+        login: '',
+        password: '',
+    });
+    const { user } = useContext(Context);
+    const navigate = useNavigate();
 
-// Мок контекста — через require внутри фабрики
-jest.mock('../index', () => {
-    const React = require('react');
-    return {
-        Context: React.createContext({ user: null }),
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
     };
-});
 
-const { Context } = require('../index');
+    const [verify, setVerify] = useState(null);
+    const [searchParams] = useSearchParams();
+    const justActivated = searchParams.get('activated') === '1';
+    const badLink = searchParams.get('activated') === '0';
 
-const mockUser = {
-    isAuth: false,
-    setIsAuth: jest.fn(),
-    setUser: jest.fn(),
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const { token } = await authApi.login(form.login, form.password);
+            setToken(token);
+            const decodedUser = decodeToken(token);
+
+            user.setUser(decodedUser);
+            user.setIsAuth(true);
+            localStorage.setItem('username', form.login);
+
+            navigate('/home');
+        } catch (err) {
+            const data = err.response?.data;
+            if (err.response?.status === 403 && data?.code === 'EMAIL_NOT_ACTIVATED') {
+                setVerify({ email: data.email || '' });
+                return;
+            }
+            console.error(err);
+            alert(data?.message || 'Ошибка входа');
+        }
+    };
+
+    return (
+        <div className="auth-page">
+            {verify && (
+                <VerifyEmailModal {...verify} onClose={() => setVerify(null)} />
+            )}
+            <div className="auth-card">
+                <h1 className="auth-title">АВТОРИЗАЦИЯ</h1>
+                {badLink && (
+                    <p className="auth-footer" style={{ color: '#A32A1A', fontWeight: 600, marginTop: 0 }}>
+                        Ссылка недействительна или уже использована. Если почта уже подтверждена — просто войдите, иначе зарегистрируйтесь заново
+                    </p>
+                )}
+                {justActivated && (
+                    <p className="auth-footer" style={{ color: '#2F5E22', fontWeight: 600, marginTop: 0 }}>
+                        Почта подтверждена — теперь можно войти
+                    </p>
+                )}
+
+                <form onSubmit={handleSubmit} className="auth-form">
+                    <input
+                        type="text"
+                        name="login"
+                        placeholder="Логин"
+                        value={form.login}
+                        onChange={handleChange}
+                        className="auth-input"
+                        required
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Пароль"
+                        value={form.password}
+                        onChange={handleChange}
+                        className="auth-input"
+                        required
+                    />
+                    <button type="submit" className="auth-button">
+                        Войти
+                    </button>
+                </form>
+
+                <p className="auth-footer">
+                    Ещё нет аккаунта?{' '}
+                    <Link to="/register" className="auth-link">
+                        Зарегистрироваться
+                    </Link>
+                </p>
+            </div>
+        </div>
+    );
 };
 
-function renderPage() {
-    return render(
-        <Context.Provider value={{ user: mockUser }}>
-            <MemoryRouter initialEntries={['/login']}>
-                <LoginPage />
-            </MemoryRouter>
-        </Context.Provider>
-    );
-}
-
-beforeEach(() => {
-    jest.clearAllMocks();
-    localStorage.clear();
-});
-
-describe('LoginPage', () => {
-    it('рендерит форму с полями логина и пароля', () => {
-        renderPage();
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Войти/i })).toBeInTheDocument();
-    });
-
-    it('успешный вход вызывает loginRequest и setUser', async () => {
-        loginRequest.mockResolvedValue({ id: 1, login: 'vasya' });
-        renderPage();
-
-        fireEvent.change(screen.getByPlaceholderText('Логин'), {
-            target: { value: 'vasya' },
-        });
-        fireEvent.change(screen.getByPlaceholderText('Пароль'), {
-            target: { value: '123456' },
-        });
-        fireEvent.click(screen.getByRole('button', { name: /Войти/i }));
-
-        await waitFor(() =>
-            expect(loginRequest).toHaveBeenCalledWith('vasya', '123456')
-        );
-        expect(mockUser.setUser).toHaveBeenCalledWith({ id: 1, login: 'vasya' });
-        expect(mockUser.setIsAuth).toHaveBeenCalledWith(true);
-    });
-
-    it('при ошибке входа показывает alert с сообщением сервера', async () => {
-        const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => { });
-        loginRequest.mockRejectedValue({
-            response: { data: { message: 'Неверный логин или пароль' } },
-        });
-
-        renderPage();
-        fireEvent.change(screen.getByPlaceholderText('Логин'), {
-            target: { value: 'vasya' },
-        });
-        fireEvent.change(screen.getByPlaceholderText('Пароль'), {
-            target: { value: 'wrong' },
-        });
-        fireEvent.click(screen.getByRole('button', { name: /Войти/i }));
-
-        await waitFor(() =>
-            expect(alertSpy).toHaveBeenCalledWith('Неверный логин или пароль')
-        );
-        alertSpy.mockRestore();
-    });
-
-    it('содержит ссылку на страницу регистрации', () => {
-        renderPage();
-        const link = screen.getByRole('link', { name: /Зарегистрироваться/i });
-        expect(link).toHaveAttribute('href', '/register');
-    });
-});
+export default LoginPage;

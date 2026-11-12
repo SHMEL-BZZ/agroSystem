@@ -1,9 +1,41 @@
 // client/src/http/http.js
-import { API_BASE_URL } from '../config/api';
-import { getToken, removeToken } from '../utils/authToken';
+import { API_BASE_URL, AUTH_BASE_URL, ENDPOINTS } from '../config/api';
+import { getToken, setToken, removeToken } from '../utils/authToken';
 
-// API_BASE_URL может быть как с /api на конце, так и без него
-const BASE_URL = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '') + '/api';
+// Одновременные 401 делят один запрос на обновление токена
+let refreshPromise = null;
+
+// Обновляет access-токен по refresh-cookie, которую выставил Auth-сервис
+function refreshAccessToken() {
+    if (!refreshPromise) {
+        refreshPromise = fetch(`${AUTH_BASE_URL}${ENDPOINTS.auth.refresh}`, {
+            method: 'POST',
+            credentials: 'include',
+        })
+            .then(async (res) => {
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (!data?.accessToken) return null;
+                setToken(data.accessToken);
+                return data.accessToken;
+            })
+            .catch(() => null)
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+    return refreshPromise;
+}
+
+// Сессия закончилась: чистим данные и отправляем на страницу входа
+function endSession() {
+    removeToken();
+    localStorage.removeItem('username');
+    const path = window.location.pathname;
+    if (path !== '/login' && path !== '/register') {
+        window.location.assign('/login');
+    }
+}
 
 // { a: 1, b: undefined } -> '?a=1'
 const buildQuery = (params) => {
@@ -24,7 +56,8 @@ const buildQuery = (params) => {
  * Универсальный запрос к API.
  *
  * @param {string} endpoint — путь без /api, например '/valve'
- * @param {object} options — { method, body, params, headers, isFormData }
+ * @param {object} options — { method, body, params, headers, isFormData, auth }
+ * auth: true — запрос к Auth-сервису (вход, регистрация), с cookie
  * @returns {Promise<any>}
  */
 export async function request(endpoint, options = {}) {
@@ -34,10 +67,12 @@ export async function request(endpoint, options = {}) {
         params,
         headers = {},
         isFormData = false,
+        auth = false,
+        _retried = false,
     } = options;
 
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const url = `${BASE_URL}${path}${buildQuery(params)}`;
+    const url = `${auth ? AUTH_BASE_URL : API_BASE_URL}${path}${buildQuery(params)}`;
 
     const finalHeaders = { ...headers };
 
@@ -56,7 +91,16 @@ export async function request(endpoint, options = {}) {
         method,
         headers: finalHeaders,
         body: finalBody,
+        credentials: auth ? 'include' : 'same-origin',
     });
+
+    // access-токен истёк — пробуем обновить и повторить запрос один раз
+    if (response.status === 401 && !auth && !_retried) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+            return request(endpoint, { ...options, _retried: true });
+        }
+    }
 
     if (response.status === 204) return null;
 
@@ -67,8 +111,8 @@ export async function request(endpoint, options = {}) {
     }
 
     if (!response.ok) {
-        if (response.status === 401) {
-            removeToken();
+        if (response.status === 401 && !auth) {
+            endSession();
         }
 
         const message =

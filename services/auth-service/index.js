@@ -1,36 +1,44 @@
-const express = require('express');
-const cors = require('cors');
-const sequelize = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
-require('dotenv').config();
+require('dotenv').config()
+const express = require('express')
+const cors = require('cors')
+const sequelize = require('./db')
+require('./models/models')
+const cookieParser = require('./middleware/cookieParser')
+const userRouter = require('./routes/userRouter')
 
-const app = express();
+const app = express()
+const PORT = process.env.AUTH_PORT || 5001
 
-// Middleware
-app.use(cors());
-app.use(express.json()); // Чтобы принимать JSON в теле запроса
+app.use(cors(require('./middleware/corsOptions')))
+app.use(express.json())
+app.use(cookieParser)
 
-// Роуты
-app.use('/', authRoutes);
+app.use('/api/user', userRouter)
 
-// Запуск сервера
-const PORT = process.env.PORT || 3001;
-
-const startServer = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('Подключение к базе watering_auth успешно.');
-
-        // Синхронизация модели с БД (создаст таблицу users, если её нет)
-        await sequelize.sync(); 
-        console.log('Таблицы синхронизированы.');
-
-        app.listen(PORT, () => {
-            console.log(`Auth Service запущен на порту ${PORT}`);
-        });
-    } catch (error) {
-        console.error('Ошибка запуска Auth Service:', error);
+app.use((err, req, res, next) => {
+    if (err.status) {
+        return res.status(err.status).json({ message: err.message, code: err.code, email: err.email })
     }
-};
+    if (err.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ message: 'Такая запись уже существует' })
+    }
+    console.error(err)
+    return res.status(500).json({ message: 'Внутренняя ошибка сервера' })
+})
 
-startServer();
+module.exports = app
+
+if (require.main === module) {
+    const start = async () => {
+        try {
+            await sequelize.authenticate()
+            console.log('Auth Service: подключение к базе успешно.')
+            await sequelize.sync()
+            app.listen(PORT, () => console.log(`Auth Service запущен на порту ${PORT}`))
+        } catch (e) {
+            console.error('Ошибка запуска Auth Service:', e)
+            process.exit(1)
+        }
+    }
+    start()
+}

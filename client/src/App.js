@@ -9,6 +9,8 @@ import {
     useNavigate,
 } from 'react-router-dom';
 
+import { authApi } from './http';
+import { removeToken } from './utils/authToken';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
@@ -39,7 +41,9 @@ const AppLayout = () => {
     const askLogout = () => setIsLogoutConfirmOpen(true);
     const cancelLogout = () => setIsLogoutConfirmOpen(false);
 
-    const confirmLogout = () => {
+    const confirmLogout = async () => {
+        await authApi.logout();
+        removeToken();
         localStorage.removeItem('username');
         setUsername('');
         setIsLogoutConfirmOpen(false);

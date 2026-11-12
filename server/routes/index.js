@@ -2,7 +2,6 @@ const { Router } = require('express')
 const router = new Router()
 
 // ─── Импорты роутеров ─────────────────────────────────────
-const userRouter = require('./userRouter')
 const chartsRouter = require('./chartsRouter')
 const valveRouter = require('./valveRouter')
 const greenhouseRouter = require('./greenhouseRouter')
@@ -18,7 +17,6 @@ const generatorRouter = require('./generatorRouter')
 const wateringScheduleRouter = require('./wateringScheduleRouter')
 
 // ─── Подключение. Пути слева — то, что ждёт клиент. ──────
-router.use('/user', userRouter)
 router.use('/charts', chartsRouter)
 router.use('/valve', valveRouter)
 router.use('/greenhouse', greenhouseRouter)
