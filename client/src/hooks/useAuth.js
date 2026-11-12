@@ -29,7 +29,8 @@ export function useAuth() {
         [navigate]
     );
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        await authApi.logout();
         removeToken();
         localStorage.removeItem('username');
         navigate('/login');
