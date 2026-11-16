@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { registration } from '../http/userAPI'; // ВАЖНО: ваш импорт
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { registration } from '../http/userAPI';
+import { setToken, decodeToken } from '../utils/authToken';
 import VerifyEmailModal from '../components/VerifyEmailModal';
+import { Context } from '../index';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -12,9 +14,19 @@ const RegisterPage = () => {
         confirmPassword: '',
     });
     const [verify, setVerify] = useState(null);
+    const { user } = useContext(Context);
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const onVerified = ({ token, user: u }) => {
+        setToken(token);
+        user.setUser(decodeToken(token));
+        user.setIsAuth(true);
+        localStorage.setItem('username', u?.login || '');
+        navigate('/home');
     };
 
     const handleSubmit = async (e) => {
@@ -26,9 +38,13 @@ const RegisterPage = () => {
         }
 
         try {
-            // Токен не выдаётся: сначала нужно подтвердить почту
             const res = await registration(form.login, form.password, form.email);
-            setVerify({ email: res.email || form.email, login: form.login });
+            setVerify({
+                email: res.email || form.email,
+                login: form.login,
+                password: form.password,
+                onVerified,
+            });
         } catch (err) {
             console.error(err);
             alert(err.message || 'Ошибка регистрации');

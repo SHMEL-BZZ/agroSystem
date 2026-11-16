@@ -6,10 +6,8 @@ import { valvesApi, tanksApi, wateringScheduleApi } from '../http';
 const WateringPage = () => {
     const [step, setStep] = useState('setup');
 
-    // ─── Клапаны из БД ───────────────────────────────────────
     const [valves, setValves] = useState([]);
 
-    // ─── Баки из БД ──────────────────────────────────────────
     const [sourceTanks, setSourceTanks] = useState([]);
 
     const [toastMessage, setToastMessage] = useState('');

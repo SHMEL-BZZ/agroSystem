@@ -1,4 +1,9 @@
+const crypto = require('crypto')
 const userService = require('../services/user-service')
+const ApiError = require('../error/ApiError')
+
+const activationCodes = new Map()
+const CODE_TTL = 2 * 60 * 1000
 
 const COOKIE_OPTIONS = {
     maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -42,16 +47,33 @@ class UserController {
     async activate(req, res, next) {
         try {
             const user = await userService.activate(req.params.link)
-            // автоматический вход: refresh-cookie выставляется здесь, фронт заберёт access-токен через /refresh
             const tokens = await userService.issueTokens(user)
             res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS)
+            const code = crypto.randomUUID()
+            activationCodes.set(code, { userId: user.id, expires: Date.now() + CODE_TTL })
             const client = (process.env.CLIENT_URL || '').split(',')[0].trim().replace(/\/+$/, '')
-            return res.redirect(`${client}/login?activated=1`)
+            return res.redirect(`${client}/login?activated=1&code=${code}`)
         } catch (e) {
             if (e.status === 400) {
                 const client = (process.env.CLIENT_URL || '').split(',')[0].trim().replace(/\/+$/, '')
                 return res.redirect(`${client}/login?activated=0`)
             }
+            next(e)
+        }
+    }
+
+    async exchangeActivation(req, res, next) {
+        try {
+            const code = (req.body || {}).code
+            const entry = activationCodes.get(code)
+            activationCodes.delete(code) // одноразовый
+            if (!entry || entry.expires < Date.now()) {
+                throw ApiError.unauthorized()
+            }
+            const userData = await userService.issueTokensByUserId(entry.userId)
+            res.cookie('refreshToken', userData.refreshToken, COOKIE_OPTIONS)
+            return res.json(userData)
+        } catch (e) {
             next(e)
         }
     }

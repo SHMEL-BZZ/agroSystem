@@ -1,11 +1,9 @@
-// client/src/http/http.js
+
 import { API_BASE_URL, AUTH_BASE_URL, ENDPOINTS } from '../config/api';
 import { getToken, setToken, removeToken } from '../utils/authToken';
 
-// Одновременные 401 делят один запрос на обновление токена
 let refreshPromise = null;
 
-// Обновляет access-токен по refresh-cookie, которую выставил Auth-сервис
 function refreshAccessToken() {
     if (!refreshPromise) {
         refreshPromise = fetch(`${AUTH_BASE_URL}${ENDPOINTS.auth.refresh}`, {
@@ -27,7 +25,6 @@ function refreshAccessToken() {
     return refreshPromise;
 }
 
-// Сессия закончилась: чистим данные и отправляем на страницу входа
 function endSession() {
     removeToken();
     localStorage.removeItem('username');
@@ -37,7 +34,6 @@ function endSession() {
     }
 }
 
-// { a: 1, b: undefined } -> '?a=1'
 const buildQuery = (params) => {
     if (!params) return '';
 
@@ -52,14 +48,6 @@ const buildQuery = (params) => {
     return query ? `?${query}` : '';
 };
 
-/**
- * Универсальный запрос к API.
- *
- * @param {string} endpoint — путь без /api, например '/valve'
- * @param {object} options — { method, body, params, headers, isFormData, auth }
- * auth: true — запрос к Auth-сервису (вход, регистрация), с cookie
- * @returns {Promise<any>}
- */
 export async function request(endpoint, options = {}) {
     const {
         method = 'GET',
@@ -94,7 +82,6 @@ export async function request(endpoint, options = {}) {
         credentials: auth ? 'include' : 'same-origin',
     });
 
-    // access-токен истёк — пробуем обновить и повторить запрос один раз
     if (response.status === 401 && !auth && !_retried) {
         const newToken = await refreshAccessToken();
         if (newToken) {
@@ -123,7 +110,6 @@ export async function request(endpoint, options = {}) {
         const error = new Error(message);
         error.status = response.status;
         error.data = data;
-        // Формат как у axios — на него завязаны alert(e.response?.data?.message)
         error.response = { status: response.status, data };
         throw error;
     }

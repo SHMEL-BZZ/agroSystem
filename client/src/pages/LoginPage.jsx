@@ -23,43 +23,50 @@ const LoginPage = () => {
     const justActivated = searchParams.get('activated') === '1';
     const badLink = searchParams.get('activated') === '0';
 
-    // После перехода по ссылке из письма сервер уже выставил refresh-cookie — входим автоматически
+    const finishLogin = ({ token, user: u }, fallbackLogin = '') => {
+        setToken(token);
+        user.setUser(decodeToken(token));
+        user.setIsAuth(true);
+        localStorage.setItem('username', u?.login || fallbackLogin);
+        navigate('/home');
+    };
+
+    const activationCode = searchParams.get('code');
     const autoLoginStarted = useRef(false);
     useEffect(() => {
         if (!justActivated || autoLoginStarted.current) return;
         autoLoginStarted.current = true;
         (async () => {
             try {
-                const { token, user: u } = await authApi.refresh();
-                setToken(token);
-                user.setUser(decodeToken(token));
-                user.setIsAuth(true);
-                localStorage.setItem('username', u?.login || '');
-                navigate('/home');
+                const data = activationCode
+                    ? await authApi.exchange(activationCode)
+                    : await authApi.refresh();
+                finishLogin(data);
             } catch (err) {
                 // не вышло — остаёмся на форме входа с сообщением «Почта подтверждена»
+                console.error('auto-login failed', err);
+                if (activationCode) {
+                    // убираем использованный код из адреса
+                    navigate('/login?activated=1', { replace: true });
+                }
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            const { token } = await authApi.login(form.login, form.password);
-            setToken(token);
-            const decodedUser = decodeToken(token);
-
-            user.setUser(decodedUser);
-            user.setIsAuth(true);
-            localStorage.setItem('username', form.login);
-
-            navigate('/home');
+            finishLogin(await authApi.login(form.login, form.password), form.login);
         } catch (err) {
             const data = err.response?.data;
             if (err.response?.status === 403 && data?.code === 'EMAIL_NOT_ACTIVATED') {
-                setVerify({ email: data.email || '' });
+                setVerify({
+                    email: data.email || '',
+                    login: form.login,
+                    password: form.password,
+                    onVerified: (res) => finishLogin(res, form.login),
+                });
                 return;
             }
             console.error(err);

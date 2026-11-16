@@ -134,6 +134,12 @@ class UserService {
         return users.map(u => new UserDto(u))
     }
 
+    async issueTokensByUserId(id) {
+        const user = await User.findByPk(id)
+        if (!user || !user.isActivated) throw ApiError.unauthorized()
+        return this.issueTokens(user)
+    }
+
     async issueTokens(user, oldTokenRow = null) {
         const userDto = new UserDto(user)
         const tokens = tokenService.generateTokens({ ...userDto })

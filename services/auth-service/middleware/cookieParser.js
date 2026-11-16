@@ -1,4 +1,3 @@
-// Минимальный разбор Cookie-заголовка (пакет cookie-parser не установлен).
 module.exports = function cookieParser(req, res, next) {
     const cookies = {}
     const header = req.headers.cookie

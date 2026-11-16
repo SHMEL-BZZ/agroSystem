@@ -1,4 +1,4 @@
-// client/src/hooks/useAuth.js
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../http';
