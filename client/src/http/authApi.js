@@ -18,6 +18,9 @@ export const authApi = {
     refresh: async () =>
         toClientShape(await http.post(ENDPOINTS.auth.refresh, undefined, { auth: true })),
 
+    exchange: async (code) =>
+        toClientShape(await http.post(ENDPOINTS.auth.exchange, { code }, { auth: true })),
+
     logout: () =>
         http.post(ENDPOINTS.auth.logout, undefined, { auth: true }).catch(() => null),
 

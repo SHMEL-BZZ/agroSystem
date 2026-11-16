@@ -13,6 +13,7 @@ export const ENDPOINTS = {
         login: '/user/login',
         register: '/user/register',
         refresh: '/user/refresh',
+        exchange: '/user/exchange-activation',
         logout: '/user/logout',
         resendActivation: '/user/resend-activation',
     },
