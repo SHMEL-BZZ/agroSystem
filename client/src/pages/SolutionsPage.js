@@ -30,9 +30,17 @@ function aggregateTankState(solutions) {
     const map = new Map();
 
     for (const sol of solutions) {
+        const comps = sol.composition || [];
+
+        const isEmptyMarker =
+            Number(sol.totalVolume) === 0 &&
+            comps.every((c) => Number(c.amount) === 0);
+
+        if (isEmptyMarker) break;
+
         usedLiters += Number(sol.totalVolume) || 0;
 
-        for (const comp of sol.composition || []) {
+        for (const comp of comps) {
             const isWater = comp.additiveId === WATER_ADDITIVE_ID;
             const key = isWater ? 'water' : comp.additiveId;
 
@@ -51,10 +59,12 @@ function aggregateTankState(solutions) {
         }
     }
 
-    const items = [...map.values()].map((it) => ({
-        ...it,
-        amount: Math.round(it.amount * 100) / 100,
-    }));
+    const items = [...map.values()]
+        .filter((it) => it.amount > 0)
+        .map((it) => ({
+            ...it,
+            amount: Math.round(it.amount * 100) / 100,
+        }));
 
     return {
         usedLiters: Math.round(usedLiters * 100) / 100,
