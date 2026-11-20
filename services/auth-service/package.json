@@ -27,8 +27,14 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "roots": ["<rootDir>/test"],
-    "testMatch": ["**/test-*.js"],
-    "setupFilesAfterEnv": ["<rootDir>/test/setup.js"]
+    "roots": [
+      "<rootDir>/test"
+    ],
+    "testMatch": [
+      "**/test-*.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.js"
+    ]
   }
 }

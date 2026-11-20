@@ -31,18 +31,30 @@ function aggregateTankState(solutions) {
 
     for (const sol of solutions) {
         const comps = sol.composition || [];
-
         const isEmptyMarker =
             Number(sol.totalVolume) === 0 &&
             comps.every((c) => Number(c.amount) === 0);
 
         if (isEmptyMarker) break;
 
-        usedLiters += Number(sol.totalVolume) || 0;
-
         for (const comp of comps) {
             const isWater = comp.additiveId === WATER_ADDITIVE_ID;
             const key = isWater ? 'water' : comp.additiveId;
+
+            const amount = Number(comp.amount) || 0;
+            const unit = String(comp.unit || '').toLowerCase();
+            let volumeInLiters = 0;
+            if (unit === 'л') {
+                volumeInLiters = amount;
+            } else if (unit === 'мл') {
+                volumeInLiters = amount / 1000;
+            } else if (unit === 'г') {
+                volumeInLiters = amount * 0.001;
+            } else if (unit === 'кг') {
+                volumeInLiters = amount;
+            }
+
+            usedLiters += volumeInLiters;
 
             const cur = map.get(key) || {
                 kind: isWater ? 'water' : 'additive',
@@ -54,7 +66,7 @@ function aggregateTankState(solutions) {
                 unit: comp.unit,
                 form: comp.additive?.unit === 'л' ? 'liquid' : 'solid',
             };
-            cur.amount += Number(comp.amount) || 0;
+            cur.amount += amount;
             map.set(key, cur);
         }
     }
